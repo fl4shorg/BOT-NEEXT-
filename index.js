@@ -304,10 +304,10 @@ async function handleCommand(sock, message, command, args, from, quoted) {
                 contextInfo: {
                     mentionedJid: [from],
                     isForwarded: true,
+                    forwardingScore: 100000,
                     forwardedNewsletterMessageInfo: {
-                        newsletterJid: "status@broadcast",
-                        newsletterName: "© NEEXT LTDA",
-                        serverId: 200
+                        newsletterJid: "120363289739581116@newsletter",
+                        newsletterName: "🐦‍🔥⃝ 𝆅࿙⵿ׂ𝆆𝝢𝝣𝝣𝝬𝗧𓋌𝗟𝗧𝗗𝗔⦙⦙ꜣྀ"
                     },
                     externalAdReply: {
                         title: `© NEEXT LTDA`,
@@ -316,10 +316,7 @@ async function handleCommand(sock, message, command, args, from, quoted) {
                         sourceUrl: "www.neext.online"
                     }
                 }
-            }, { quoted: selinho });
-            
-            // Reply adicional como solicitado
-            await reply(sock, from, "🤖 Pong! Bot está online e funcionando perfeitamente!");
+            }, { quoted: message });
         }
         break;
 
