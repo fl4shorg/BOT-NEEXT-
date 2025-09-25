@@ -3,7 +3,8 @@
 const { 
     makeWASocket, 
     fetchLatestBaileysVersion, 
-    generateWAMessageFromContent 
+    generateWAMessageFromContent,
+    downloadContentFromMessage
 } = require("@whiskeysockets/baileys");
 
 
@@ -122,6 +123,88 @@ async function reagirMensagem(sock, normalized, emoji = "🤖") {
     }
 }
 
+// Detecta links na mensagem
+function detectarLinks(texto) {
+    if (!texto) return false;
+    const linkRegex = /((https?:\/\/)|(www\.))[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)|wa\.me\/|whatsapp\.com\/|t\.me\/|chat\.whatsapp\.com\/|instagram\.com\/|facebook\.com\/|twitter\.com\/|tiktok\.com\/|youtube\.com\/|discord\.gg\//i;
+    return linkRegex.test(texto);
+}
+
+// Verifica se usuário é admin do grupo
+async function isAdmin(sock, groupId, userId) {
+    try {
+        const groupMetadata = await sock.groupMetadata(groupId);
+        const participant = groupMetadata.participants.find(p => p.id === userId);
+        return participant && (participant.admin === 'admin' || participant.admin === 'superadmin');
+    } catch (err) {
+        console.error("❌ Erro ao verificar admin:", err);
+        return false;
+    }
+}
+
+// Verifica se usuário é o dono do bot
+function isDono(userId) {
+    const numeroDono = settings.numeroDoDono + "@s.whatsapp.net";
+    return userId === numeroDono;
+}
+
+// Remove mensagem do grupo
+async function removerMensagem(sock, messageKey) {
+    try {
+        await sock.sendMessage(messageKey.remoteJid, { delete: messageKey });
+        return true;
+    } catch (err) {
+        console.error("❌ Erro ao remover mensagem:", err);
+        return false;
+    }
+}
+
+// Processa antilink
+async function processarAntilink(sock, normalized) {
+    try {
+        const from = normalized.key.remoteJid;
+        const sender = normalized.key.participant || from;
+        const text = getMessageText(normalized.message);
+        
+        // Só funciona em grupos
+        if (!from.endsWith('@g.us') && !from.endsWith('@lid')) return false;
+        
+        // Carrega configuração do antilink
+        const antilinkData = carregarAntilink();
+        if (!antilinkData[from]) return false; // Grupo não tem antilink ativo
+        
+        // Verifica se tem links
+        if (!detectarLinks(text)) return false;
+        
+        // Não remove se for o dono
+        if (isDono(sender)) {
+            await reply(sock, from, "🛡️ Dono detectado com link, mas não será removido!");
+            return false;
+        }
+        
+        // Não remove se for admin
+        const ehAdmin = await isAdmin(sock, from, sender);
+        if (ehAdmin) {
+            await reply(sock, from, "👮‍♂️ Admin detectado com link, mas não será removido!");
+            return false;
+        }
+        
+        // Remove a mensagem
+        const removido = await removerMensagem(sock, normalized.key);
+        if (removido) {
+            await reagirMensagem(sock, normalized, "🚫");
+            const senderNumber = sender.split('@')[0];
+            await reply(sock, from, `🚫 *ANTILINK ATIVO*\n\n@${senderNumber} sua mensagem foi removida por conter link!\n\n⚠️ Links não são permitidos neste grupo.`, [sender]);
+            console.log(`🚫 Link removido de ${senderNumber} no grupo ${from}`);
+        }
+        
+        return true;
+    } catch (err) {
+        console.error("❌ Erro no processamento antilink:", err);
+        return false;
+    }
+}
+
 
 
 // Função principal de comandos
@@ -205,6 +288,46 @@ async function handleCommand(sock, message, command, args, from, quoted) {
         case "recado":
             await sock.sendMessage(from, { text: "📌 Bot está ativo e conectado!" }, { quoted: message });
             break;
+            
+        case "antilink": {
+            // Só funciona em grupos
+            if (!from.endsWith('@g.us') && !from.endsWith('@lid')) {
+                await reply(sock, from, "❌ Este comando só pode ser usado em grupos.");
+                break;
+            }
+            
+            const sender = message.key.participant || from;
+            
+            // Verifica se é admin ou dono
+            const ehAdmin = await isAdmin(sock, from, sender);
+            const ehDono = isDono(sender);
+            
+            if (!ehAdmin && !ehDono) {
+                await reply(sock, from, "❌ Apenas admins podem usar este comando.");
+                break;
+            }
+            
+            const antilinkData = carregarAntilink();
+            const acao = args[0]?.toLowerCase();
+            
+            if (acao === "on" || acao === "ativar" || acao === "1") {
+                antilinkData[from] = true;
+                salvarAntilink(antilinkData);
+                await reagirMensagem(sock, message, "✅");
+                await reply(sock, from, "✅ *ANTILINK ATIVADO*\n\n🚫 Links serão automaticamente removidos\n⚠️ Admins e dono são isentos");
+            } 
+            else if (acao === "off" || acao === "desativar" || acao === "0") {
+                delete antilinkData[from];
+                salvarAntilink(antilinkData);
+                await reagirMensagem(sock, message, "❌");
+                await reply(sock, from, "❌ *ANTILINK DESATIVADO*\n\n✅ Links agora são permitidos");
+            }
+            else {
+                const status = antilinkData[from] ? "🟢 ATIVO" : "🔴 INATIVO";
+                await reply(sock, from, `🔗 *STATUS ANTILINK*\n\nStatus: ${status}\n\n📝 *Como usar:*\n• \`${prefix}antilink on\` - Ativar\n• \`${prefix}antilink off\` - Desativar\n\n⚠️ Apenas admins podem usar`);
+            }
+        }
+        break;
 
         case "s":
             try {
@@ -278,6 +401,10 @@ function setupListeners(sock) {
             // logger central
             const isCmd = text.startsWith(prefix);
             logMensagem(normalized, text, isCmd);
+
+            // 🔹 Verificação de ANTILINK (antes de tudo)
+            const linkRemovido = await processarAntilink(sock, normalized);
+            if (linkRemovido) continue; // se removeu link, não processa mais nada
 
             // 🔹 Palavras-chave sem prefixo
             const respondeu = await responderPalavrasChave(sock, text, from, normalized);
