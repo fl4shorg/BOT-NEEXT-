@@ -40,6 +40,24 @@ const quotedCarrinho = {
     message: { documentMessage: { title: "🛒 Neext Ltda", fileName: "Neext.pdf", mimetype: "application/pdf", fileLength: 999999, pageCount: 1 } }
 };
 
+const quotedAnuncio = {
+    key: { fromMe: false, participant: `556799999999@s.whatsapp.net`, remoteJid: 'status@broadcast' },
+    message: { 
+        extendedTextMessage: { 
+            text: "🚀 NEEXT LTDA - Soluções Digitais\n📱 Instagram: @neet.tk\n🌐 www.neext.online",
+            contextInfo: {
+                externalAdReply: {
+                    title: "🔥 NEEXT LTDA",
+                    body: "Tecnologia e Inovação",
+                    thumbnailUrl: "https://i.ibb.co/nqgG6z6w/IMG-20250720-WA0041-2.jpg",
+                    mediaType: 1,
+                    sourceUrl: "www.neext.online"
+                }
+            }
+        }
+    }
+};
+
 // Mensagens já processadas (evita duplicadas)
 const processedMessages = new Set();
 setInterval(() => processedMessages.clear(), 5 * 60 * 1000);
@@ -323,7 +341,7 @@ async function handleCommand(sock, message, command, args, from, quoted) {
         break;
 
         case "hora":
-            await sock.sendMessage(from, { text: `⏰ Agora é: ${new Date().toLocaleTimeString()}` }, { quoted: message });
+            await sock.sendMessage(from, { text: `⏰ Agora é: ${new Date().toLocaleTimeString()}` }, { quoted: quotedAnuncio });
             break;
             
             case 'dono':
