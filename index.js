@@ -13,6 +13,7 @@ const fs = require("fs");
 const axios = require("axios");
 const os = require("os");
 const { writeExif } = require("./arquivos/sticker.js");
+const { sendImageAsSticker, sendVideoAsSticker } = require("./arquivos/rename.js");
 const Jimp = require("jimp");
 const pinterest = require('./Pinterest.js');
 const settings = require('./settings/settings.json');
@@ -675,6 +676,93 @@ async function handleCommand(sock, message, command, args, from, quoted) {
                 await reagirMensagem(sock, message, "❌");
                 await sock.sendMessage(from, { 
                     text: '❌ Erro ao buscar imagens no Pinterest. Tente novamente mais tarde!' 
+                }, { quoted: message });
+            }
+            break;
+        }
+
+        case 'rename': {
+            if (!args.length) {
+                await sock.sendMessage(from, {
+                    text: '🏷️ *Como usar o comando rename:*\n\n' +
+                          '📝 *.rename Pack Nome | Autor Nome*\n\n' +
+                          '💡 *Exemplo:*\n' +
+                          '*.rename Meus Stickers | João*\n\n' +
+                          '📌 Responda uma imagem ou vídeo com este comando para criar um sticker personalizado!'
+                }, { quoted: message });
+                break;
+            }
+
+            // Verifica se tem mídia citada
+            const quotedMsg = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+            if (!quotedMsg) {
+                await sock.sendMessage(from, {
+                    text: '❌ Você precisa responder a uma imagem ou vídeo para usar este comando!'
+                }, { quoted: message });
+                break;
+            }
+
+            await reagirMensagem(sock, message, "⏳");
+
+            try {
+                // Parse dos argumentos (packname | author)
+                const fullText = args.join(' ');
+                const [packname, author] = fullText.split('|').map(s => s.trim());
+                
+                if (!packname || !author) {
+                    await reagirMensagem(sock, message, "❌");
+                    await sock.sendMessage(from, {
+                        text: '❌ Use o formato: *.rename Pack Nome | Autor Nome*'
+                    }, { quoted: message });
+                    break;
+                }
+
+                // Detecta tipo de mídia
+                const isImage = quotedMsg.imageMessage;
+                const isVideo = quotedMsg.videoMessage;
+
+                if (!isImage && !isVideo) {
+                    await reagirMensagem(sock, message, "❌");
+                    await sock.sendMessage(from, {
+                        text: '❌ Apenas imagens e vídeos podem ser convertidos em stickers!'
+                    }, { quoted: message });
+                    break;
+                }
+
+                console.log(`🏷️ Criando sticker: Pack="${packname}", Autor="${author}"`);
+
+                // Baixa a mídia
+                const mediaBuffer = await downloadContentFromMessage(
+                    isImage ? quotedMsg.imageMessage : quotedMsg.videoMessage,
+                    isImage ? 'image' : 'video'
+                );
+
+                let buffer = Buffer.concat([]);
+                for await (const chunk of mediaBuffer) {
+                    buffer = Buffer.concat([buffer, chunk]);
+                }
+
+                // Opções personalizadas
+                const options = {
+                    packname: packname,
+                    author: author
+                };
+
+                // Envia como sticker personalizado
+                if (isImage) {
+                    await sendImageAsSticker(sock, from, buffer, message, options);
+                } else {
+                    await sendVideoAsSticker(sock, from, buffer, message, options);
+                }
+
+                await reagirMensagem(sock, message, "✅");
+                console.log('✅ Sticker personalizado criado com sucesso!');
+
+            } catch (error) {
+                console.error('❌ Erro no comando rename:', error.message);
+                await reagirMensagem(sock, message, "❌");
+                await sock.sendMessage(from, {
+                    text: '❌ Erro ao criar sticker personalizado. Tente novamente!'
                 }, { quoted: message });
             }
             break;

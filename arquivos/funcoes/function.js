@@ -77,9 +77,29 @@ Conteúdo: ${conteudo}
 }
 
 // ---------------------------
+// Função para buscar buffer de URL
+// ---------------------------
+async function getBuffer(url) {
+    try {
+        const response = await require('axios').get(url, { responseType: 'arraybuffer' });
+        return Buffer.from(response.data);
+    } catch (error) {
+        console.error('Erro ao buscar buffer da URL:', error);
+        throw error;
+    }
+}
+
+// Função para formatar JID
+function formatJid(jid) {
+    return String(jid || "").replace(/@s\.whatsapp\.net|@g\.us|@lid/g,'');
+}
+
+// ---------------------------
 // Exportações
 // ---------------------------
 module.exports = {
     mostrarBanner,
-    logMensagem
+    logMensagem,
+    formatJid,
+    getBuffer
 };
