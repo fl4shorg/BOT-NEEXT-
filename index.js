@@ -40,21 +40,21 @@ const quotedCarrinho = {
     message: { documentMessage: { title: "🛒 Neext Ltda", fileName: "Neext.pdf", mimetype: "application/pdf", fileLength: 999999, pageCount: 1 } }
 };
 
-const quotedAnuncio = {
-    key: { fromMe: false, participant: `556799999999@s.whatsapp.net`, remoteJid: 'status@broadcast' },
-    message: { 
-        extendedTextMessage: { 
-            text: "🚀 NEEXT LTDA - Soluções Digitais\n📱 Instagram: @neet.tk\n🌐 www.neext.online",
-            contextInfo: {
-                externalAdReply: {
-                    title: "🔥 NEEXT LTDA",
-                    body: "Tecnologia e Inovação",
-                    thumbnailUrl: "https://i.ibb.co/nqgG6z6w/IMG-20250720-WA0041-2.jpg",
-                    mediaType: 1,
-                    sourceUrl: "www.neext.online"
-                }
-            }
-        }
+// ContextInfo para fazer mensagens aparecerem como "via anúncio"
+const contextAnuncio = {
+    forwardingScore: 99999,
+    isForwarded: true,
+    forwardedNewsletterMessageInfo: {
+        newsletterJid: "120363289739581116@newsletter",
+        newsletterName: "🐦‍🔥⃝ NEEXT LTDA",
+        serverMessageId: 1
+    },
+    externalAdReply: {
+        title: "© NEEXT LTDA",
+        body: "📱 Instagram: @neet.tk",
+        thumbnailUrl: "https://i.ibb.co/nqgG6z6w/IMG-20250720-WA0041-2.jpg",
+        mediaType: 1,
+        sourceUrl: "www.neext.online"
     }
 };
 
@@ -341,7 +341,10 @@ async function handleCommand(sock, message, command, args, from, quoted) {
         break;
 
         case "hora":
-            await sock.sendMessage(from, { text: `⏰ Agora é: ${new Date().toLocaleTimeString()}` }, { quoted: quotedAnuncio });
+            await sock.sendMessage(from, { 
+                text: `⏰ Agora é: ${new Date().toLocaleTimeString()}`,
+                contextInfo: contextAnuncio
+            });
             break;
             
             case 'dono':
