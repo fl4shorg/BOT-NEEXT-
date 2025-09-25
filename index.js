@@ -316,7 +316,7 @@ async function handleCommand(sock, message, command, args, from, quoted) {
                         sourceUrl: "www.neext.online"
                     }
                 }
-            }, { quoted: message });
+            }, { quoted: { key: message.key, message: message.message } });
         }
         break;
 
