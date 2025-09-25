@@ -47,7 +47,11 @@ async function bufferToWebp(buffer, isVideo = false) {
 // Função writeExif para compatibilidade com index.js
 async function writeExif(media, metadata) {
     const { mimetype, data } = media;
-    const { packname = "NEEXT LTDA", author = "NEEXT BOT", categories = ["😎"] } = metadata;
+    
+    // Usa valores fornecidos pelo usuário OU padrões NEEXT apenas se não houver valores
+    const packname = metadata.packname || "NEEXT LTDA";
+    const author = metadata.author || "NEEXT BOT";
+    const categories = metadata.categories || ["😎"];
     
     // Detecta se é vídeo/GIF
     const isVideo = mimetype && (
@@ -61,9 +65,9 @@ async function writeExif(media, metadata) {
     await img.load(webpFile);
 
     const json = {
-        "sticker-pack-id": `neext-${Date.now()}`,
-        "sticker-pack-name": "© NEEXT LTDA\n🐦‍🔥 Instagram: @neet.tk",
-        "sticker-pack-publisher": `${author}`,
+        "sticker-pack-id": `${packname}-${Date.now()}`,
+        "sticker-pack-name": packname,
+        "sticker-pack-publisher": author,
         "sticker-pack-categories": categories
     };
 
