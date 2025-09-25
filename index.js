@@ -537,24 +537,30 @@ async function handleCommand(sock, message, command, args, from, quoted) {
             try {
                 // Faz requisição para API BRAT
                 const apiUrl = `https://api.ypnk.dpdns.org/api/image/brat?text=${encodeURIComponent(text)}`;
+                console.log(`🔗 Chamando API: ${apiUrl}`);
                 const response = await axios.get(apiUrl, { responseType: 'arraybuffer' });
                 
                 if (!response.data) {
                     throw new Error('API retornou dados vazios');
                 }
 
-                // Salva imagem temporária
-                const tempImagePath = `./temp_brat_${Date.now()}.png`;
-                fs.writeFileSync(tempImagePath, response.data);
-                
                 console.log(`📥 Imagem BRAT baixada: ${response.data.length} bytes`);
 
-                // Converte para sticker usando a função existente
-                const stickerPath = await criarSticker(
-                    tempImagePath, 
-                    "© NEEXT LTDA\n🐦‍🔥 Instagram: @neet.tk",
-                    "NEEXT BOT", 
-                    { categories: ["🎨", "💚", "🔥"] }
+                // Obtém hora atual para metadados
+                const agora = new Date();
+                const dataHora = `${agora.toLocaleDateString('pt-BR')} ${agora.toLocaleTimeString('pt-BR')}`;
+
+                // Converte para sticker usando writeExif do sticker.js
+                const stickerPath = await writeExif(
+                    { 
+                        mimetype: 'image/png', 
+                        data: Buffer.from(response.data) 
+                    }, 
+                    { 
+                        packname: "© NEEXT LTDA\n🐦‍🔥 Instagram: @neet.tk", 
+                        author: `NEEXT BOT - ${dataHora}`, 
+                        categories: ["🎨", "💚", "🔥"] 
+                    }
                 );
 
                 // Envia a figurinha BRAT com contextInfo de anúncio
@@ -578,8 +584,7 @@ async function handleCommand(sock, message, command, args, from, quoted) {
                     }
                 }, { quoted: message });
 
-                // Limpa arquivos temporários
-                fs.unlinkSync(tempImagePath);
+                // Limpa arquivo temporário
                 fs.unlinkSync(stickerPath);
 
                 await reagirMensagem(sock, message, "✅");
