@@ -60,14 +60,10 @@ async function writeExif(media, metadata) {
     const img = new webp.Image();
     await img.load(webpFile);
 
-    // Cria nome do pacote com data e hora
-    const agora = new Date();
-    const dataHora = `${agora.toLocaleDateString('pt-BR')} ${agora.toLocaleTimeString('pt-BR')}`;
-    
     const json = {
         "sticker-pack-id": `neext-${Date.now()}`,
-        "sticker-pack-name": `${packname} - ${dataHora}`,
-        "sticker-pack-publisher": `${author} - NEEXT LTDA`,
+        "sticker-pack-name": "© NEEXT LTDA\n🐦‍🔥 Instagram: @neet.tk",
+        "sticker-pack-publisher": `${author}`,
         "sticker-pack-categories": categories
     };
 
