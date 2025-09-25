@@ -30,7 +30,9 @@ async function videoToWebp(buffer) {
 // Função para escrever EXIF em imagens com dados personalizados
 async function writeExifImg(buffer, options = {}) {
     try {
-        const { packname = "NEEXT LTDA", author = "NEEXT BOT" } = options;
+        // Usa APENAS os valores fornecidos pelo usuário, sem fallbacks
+        const packname = options.packname;
+        const author = options.author;
         const media = { data: buffer, mimetype: 'image/jpeg' };
         const metadata = { packname, author };
         return await writeExif(media, metadata);
@@ -43,7 +45,9 @@ async function writeExifImg(buffer, options = {}) {
 // Função para escrever EXIF em vídeos com dados personalizados
 async function writeExifVid(buffer, options = {}) {
     try {
-        const { packname = "NEEXT LTDA", author = "NEEXT BOT" } = options;
+        // Usa APENAS os valores fornecidos pelo usuário, sem fallbacks
+        const packname = options.packname;
+        const author = options.author;
         const media = { data: buffer, mimetype: 'video/mp4' };
         const metadata = { packname, author };
         return await writeExif(media, metadata);
@@ -53,6 +57,8 @@ async function writeExifVid(buffer, options = {}) {
         
         // Fallback: tenta processar como imagem se falhar como vídeo
         try {
+            const packname = options.packname;
+            const author = options.author;
             const media = { data: buffer, mimetype: 'image/webp' };
             const metadata = { packname, author };
             return await writeExif(media, metadata);
