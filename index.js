@@ -40,21 +40,15 @@ const quotedCarrinho = {
     message: { documentMessage: { title: "🛒 Neext Ltda", fileName: "Neext.pdf", mimetype: "application/pdf", fileLength: 999999, pageCount: 1 } }
 };
 
-// ContextInfo para fazer mensagens aparecerem como "via anúncio"
+// ContextInfo para fazer mensagens aparecerem como "enviada via anúncio"
 const contextAnuncio = {
-    forwardingScore: 99999,
-    isForwarded: true,
-    forwardedNewsletterMessageInfo: {
-        newsletterJid: "120363289739581116@newsletter",
-        newsletterName: "🐦‍🔥⃝ NEEXT LTDA",
-        serverMessageId: 1
-    },
     externalAdReply: {
         title: "© NEEXT LTDA",
         body: "📱 Instagram: @neet.tk",
         thumbnailUrl: "https://i.ibb.co/nqgG6z6w/IMG-20250720-WA0041-2.jpg",
         mediaType: 1,
-        sourceUrl: "www.neext.online"
+        sourceUrl: "https://www.neext.online",
+        showAdAttribution: true
     }
 };
 
