@@ -159,14 +159,39 @@ async function removerMensagem(sock, messageKey) {
     }
 }
 
+// Verifica se bot é admin do grupo
+async function botEhAdmin(sock, groupId) {
+    try {
+        const groupMetadata = await sock.groupMetadata(groupId);
+        const botId = sock.user?.id?.replace(/:.*@s.whatsapp.net/, '@s.whatsapp.net') || sock.user?.id;
+        const botParticipant = groupMetadata.participants.find(p => p.id === botId);
+        return botParticipant && (botParticipant.admin === 'admin' || botParticipant.admin === 'superadmin');
+    } catch (err) {
+        console.error("❌ Erro ao verificar se bot é admin:", err);
+        return false;
+    }
+}
+
 // Bane usuário do grupo
 async function banirUsuario(sock, groupId, userId) {
     try {
+        // Verifica se bot tem permissão de admin
+        const botAdmin = await botEhAdmin(sock, groupId);
+        if (!botAdmin) {
+            console.log(`⚠️ Bot não é admin no grupo ${groupId} - não pode banir`);
+            return { success: false, reason: "bot_nao_admin" };
+        }
+        
+        console.log(`⚔️ Tentando banir usuário ${userId} do grupo ${groupId}`);
         await sock.groupParticipantsUpdate(groupId, [userId], "remove");
-        return true;
+        console.log(`✅ Usuário ${userId} banido com sucesso!`);
+        return { success: true, reason: "banido" };
     } catch (err) {
-        console.error("❌ Erro ao banir usuário:", err);
-        return false;
+        console.error(`❌ Erro ao banir usuário ${userId}:`, err);
+        if (err.message?.includes('forbidden')) {
+            return { success: false, reason: "sem_permissao" };
+        }
+        return { success: false, reason: "erro_tecnico" };
     }
 }
 
@@ -204,18 +229,35 @@ async function processarAntilink(sock, normalized) {
         const removido = await removerMensagem(sock, normalized.key);
         
         if (removido) {
-            // Bane o usuário do grupo
-            const banido = await banirUsuario(sock, from, sender);
-            
-            await reagirMensagem(sock, normalized, "⚔️");
             const senderNumber = sender.split('@')[0];
+            console.log(`🚫 Mensagem com link removida de ${senderNumber}`);
             
-            if (banido) {
-                await reply(sock, from, `⚔️ *ANTILINK ATIVO - USUÁRIO BANIDO*\n\n@${senderNumber} foi removido do grupo por enviar link!\n\n🚫 Links não são permitidos neste grupo.\n⚡ Ação: Mensagem deletada + usuário banido`, [sender]);
-                console.log(`⚔️ Usuário ${senderNumber} BANIDO do grupo ${from} por enviar link`);
+            // Aguarda um pouco antes de tentar banir
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Tenta banir o usuário
+            const resultadoBan = await banirUsuario(sock, from, sender);
+            
+            if (resultadoBan.success) {
+                await reagirMensagem(sock, normalized, "⚔️");
+                await reply(sock, from, `⚔️ *ANTILINK - USUÁRIO BANIDO!*\n\n@${senderNumber} foi removido do grupo por enviar link!\n\n🚫 Links não são permitidos aqui.\n⚡ Ação: Delete + Ban automático`, [sender]);
+                console.log(`⚔️ SUCESSO: ${senderNumber} banido do grupo ${from}`);
             } else {
-                await reply(sock, from, `🚫 *ANTILINK ATIVO*\n\n@${senderNumber} sua mensagem foi removida por conter link!\n\n⚠️ Tentativa de banimento falhou, mas mensagem foi deletada.`, [sender]);
-                console.log(`🚫 Link removido de ${senderNumber}, mas falha ao banir do grupo ${from}`);
+                await reagirMensagem(sock, normalized, "🚫");
+                let motivo = "";
+                switch(resultadoBan.reason) {
+                    case "bot_nao_admin":
+                        motivo = "Bot não é admin do grupo";
+                        break;
+                    case "sem_permissao":
+                        motivo = "Bot sem permissão para banir";
+                        break;
+                    default:
+                        motivo = "Erro técnico no banimento";
+                }
+                
+                await reply(sock, from, `🚫 *ANTILINK ATIVO*\n\n@${senderNumber} sua mensagem foi deletada por conter link!\n\n⚠️ **Não foi possível banir:** ${motivo}\n💡 **Solução:** Torne o bot admin do grupo`, [sender]);
+                console.log(`⚠️ FALHA: Não foi possível banir ${senderNumber} - ${motivo}`);
             }
         }
         
