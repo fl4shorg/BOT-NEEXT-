@@ -159,6 +159,17 @@ async function removerMensagem(sock, messageKey) {
     }
 }
 
+// Bane usuário do grupo
+async function banirUsuario(sock, groupId, userId) {
+    try {
+        await sock.groupParticipantsUpdate(groupId, [userId], "remove");
+        return true;
+    } catch (err) {
+        console.error("❌ Erro ao banir usuário:", err);
+        return false;
+    }
+}
+
 // Processa antilink
 async function processarAntilink(sock, normalized) {
     try {
@@ -191,11 +202,21 @@ async function processarAntilink(sock, normalized) {
         
         // Remove a mensagem
         const removido = await removerMensagem(sock, normalized.key);
+        
         if (removido) {
-            await reagirMensagem(sock, normalized, "🚫");
+            // Bane o usuário do grupo
+            const banido = await banirUsuario(sock, from, sender);
+            
+            await reagirMensagem(sock, normalized, "⚔️");
             const senderNumber = sender.split('@')[0];
-            await reply(sock, from, `🚫 *ANTILINK ATIVO*\n\n@${senderNumber} sua mensagem foi removida por conter link!\n\n⚠️ Links não são permitidos neste grupo.`, [sender]);
-            console.log(`🚫 Link removido de ${senderNumber} no grupo ${from}`);
+            
+            if (banido) {
+                await reply(sock, from, `⚔️ *ANTILINK ATIVO - USUÁRIO BANIDO*\n\n@${senderNumber} foi removido do grupo por enviar link!\n\n🚫 Links não são permitidos neste grupo.\n⚡ Ação: Mensagem deletada + usuário banido`, [sender]);
+                console.log(`⚔️ Usuário ${senderNumber} BANIDO do grupo ${from} por enviar link`);
+            } else {
+                await reply(sock, from, `🚫 *ANTILINK ATIVO*\n\n@${senderNumber} sua mensagem foi removida por conter link!\n\n⚠️ Tentativa de banimento falhou, mas mensagem foi deletada.`, [sender]);
+                console.log(`🚫 Link removido de ${senderNumber}, mas falha ao banir do grupo ${from}`);
+            }
         }
         
         return true;
@@ -314,7 +335,7 @@ async function handleCommand(sock, message, command, args, from, quoted) {
                 antilinkData[from] = true;
                 salvarAntilink(antilinkData);
                 await reagirMensagem(sock, message, "✅");
-                await reply(sock, from, "✅ *ANTILINK ATIVADO*\n\n🚫 Links serão automaticamente removidos\n⚠️ Admins e dono são isentos");
+                await reply(sock, from, "✅ *ANTILINK ATIVADO*\n\n⚔️ Links serão removidos e usuário será BANIDO\n🛡️ Admins e dono são protegidos\n🚫 Ação dupla: Delete + Ban");
             } 
             else if (acao === "off" || acao === "desativar" || acao === "0") {
                 delete antilinkData[from];
@@ -324,7 +345,7 @@ async function handleCommand(sock, message, command, args, from, quoted) {
             }
             else {
                 const status = antilinkData[from] ? "🟢 ATIVO" : "🔴 INATIVO";
-                await reply(sock, from, `🔗 *STATUS ANTILINK*\n\nStatus: ${status}\n\n📝 *Como usar:*\n• \`${prefix}antilink on\` - Ativar\n• \`${prefix}antilink off\` - Desativar\n\n⚠️ Apenas admins podem usar`);
+                await reply(sock, from, `🔗 *STATUS ANTILINK*\n\nStatus: ${status}\n\n📝 *Como usar:*\n• \`${prefix}antilink on\` - Ativar\n• \`${prefix}antilink off\` - Desativar\n\n⚔️ *Quando ativo:*\n• Deleta mensagem com link\n• Bane o usuário automaticamente\n• Protege admins e dono\n\n⚠️ Apenas admins podem usar`);
             }
         }
         break;
