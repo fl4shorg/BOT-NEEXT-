@@ -736,15 +736,44 @@ async function handleCommand(sock, message, command, args, from, quoted) {
                     author: author
                 };
 
-                // Detecta se é animada (webp com vídeo) ou estática
-                const isAnimated = quotedMsg.stickerMessage.isAnimated || 
-                                 buffer.toString('hex', 0, 4) === '52494646'; // RIFF header (WebP animado)
+                // Detecta se é animada de forma mais precisa
+                let isAnimated = false;
+                
+                // Primeiro verifica se está marcada como animada no metadado
+                if (quotedMsg.stickerMessage.isAnimated === true) {
+                    isAnimated = true;
+                } else {
+                    // Verifica headers WebP para detectar animação
+                    const hexString = buffer.toString('hex').toUpperCase();
+                    // WebP animado contém 'WEBPVP8X' ou 'WEBPVP8L' com flag de animação
+                    if (hexString.includes('5745425056503858') || // WEBPVP8X
+                        hexString.includes('5745425056503841')) {   // WEBPVP8A (com alpha/animação)
+                        isAnimated = true;
+                    }
+                }
+
+                console.log(`📊 Tipo de figurinha detectado: ${isAnimated ? 'Animada' : 'Estática'}`);
 
                 // Reenvia a figurinha com novos metadados
-                if (isAnimated) {
-                    await sendVideoAsSticker(sock, from, buffer, message, options);
-                } else {
-                    await sendImageAsSticker(sock, from, buffer, message, options);
+                try {
+                    if (isAnimated) {
+                        await sendVideoAsSticker(sock, from, buffer, message, options);
+                    } else {
+                        await sendImageAsSticker(sock, from, buffer, message, options);
+                    }
+                } catch (stickerError) {
+                    console.log(`⚠️ Erro ao processar como ${isAnimated ? 'animada' : 'estática'}, tentando método alternativo...`);
+                    // Se falhar, tenta o método alternativo
+                    try {
+                        if (isAnimated) {
+                            await sendImageAsSticker(sock, from, buffer, message, options);
+                        } else {
+                            await sendVideoAsSticker(sock, from, buffer, message, options);
+                        }
+                    } catch (fallbackError) {
+                        console.error('❌ Ambos os métodos falharam:', fallbackError.message);
+                        throw new Error('Não foi possível processar a figurinha');
+                    }
                 }
 
                 await reagirMensagem(sock, message, "✅");

@@ -49,7 +49,17 @@ async function writeExifVid(buffer, options = {}) {
         return await writeExif(media, metadata);
     } catch (error) {
         console.error('Erro ao escrever EXIF no vídeo:', error);
-        throw error;
+        console.log('🔄 Tentando processar como imagem estática...');
+        
+        // Fallback: tenta processar como imagem se falhar como vídeo
+        try {
+            const media = { data: buffer, mimetype: 'image/webp' };
+            const metadata = { packname, author };
+            return await writeExif(media, metadata);
+        } catch (fallbackError) {
+            console.error('❌ Fallback também falhou:', fallbackError);
+            throw error; // Lança o erro original
+        }
     }
 }
 
