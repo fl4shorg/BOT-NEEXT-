@@ -15,7 +15,29 @@ let buff = Buffer.isBuffer(path) ? path : /^data:.*?\/.*?;base64,/i.test(path) ?
  // SEMPRE usa writeExifImg para preservar metadados personalizados
  buffer = await writeExifImg(buff, options);
 
-await conn.sendMessage(jid, {sticker: {url: buffer}, ...options}, {quoted})
+// ContextInfo para fazer aparecer como "via anúncio"
+const contextAnuncio = {
+    forwardingScore: 99999,
+    isForwarded: true,
+    forwardedNewsletterMessageInfo: {
+        newsletterJid: "120363289739581116@newsletter",
+        newsletterName: "🐦‍🔥⃝ NEEXT LTDA",
+        serverMessageId: 1
+    },
+    externalAdReply: {
+        title: "© NEEXT LTDA",
+        body: "📱 Instagram: @neet.tk",
+        thumbnailUrl: "https://i.ibb.co/nqgG6z6w/IMG-20250720-WA0041-2.jpg",
+        mediaType: 1,
+        sourceUrl: "www.neext.online"
+    }
+};
+
+await conn.sendMessage(jid, {
+    sticker: {url: buffer}, 
+    contextInfo: contextAnuncio,
+    ...options
+}, {quoted})
 return buffer;
 };
 
@@ -27,7 +49,29 @@ let buff = Buffer.isBuffer(path) ? path : /^data:.*?\/.*?;base64,/i.test(path) ?
  // SEMPRE usa writeExifVid para preservar metadados personalizados
  buffer = await writeExifVid(buff, options);
 
-await conn.sendMessage(jid, { sticker: { url: buffer }, ...options }, { quoted })
+// ContextInfo para fazer aparecer como "via anúncio"
+const contextAnuncio = {
+    forwardingScore: 99999,
+    isForwarded: true,
+    forwardedNewsletterMessageInfo: {
+        newsletterJid: "120363289739581116@newsletter",
+        newsletterName: "🐦‍🔥⃝ NEEXT LTDA",
+        serverMessageId: 1
+    },
+    externalAdReply: {
+        title: "© NEEXT LTDA",
+        body: "📱 Instagram: @neet.tk",
+        thumbnailUrl: "https://i.ibb.co/nqgG6z6w/IMG-20250720-WA0041-2.jpg",
+        mediaType: 1,
+        sourceUrl: "www.neext.online"
+    }
+};
+
+await conn.sendMessage(jid, { 
+    sticker: { url: buffer }, 
+    contextInfo: contextAnuncio,
+    ...options 
+}, { quoted })
 return buffer;
 }
 
