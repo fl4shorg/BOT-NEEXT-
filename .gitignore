@@ -1,3 +1,22 @@
 node_modules/
 auth_info.json
 .env
+
+# WhatsApp Bot Connection Files
+conexao/
+*.json
+!package*.json
+!settings/settings.json
+!tsconfig.json
+
+# Temporary files
+temp/
+tmp/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
