@@ -298,7 +298,28 @@ async function handleCommand(sock, message, command, args, from, quoted) {
 ┃ 💾 Memória Livre: ${freeMem} MB
 ┗━━━━━━━━━━━━━━━┛`;
 
-            await reply(sock, from, pingMessage);
+            await sock.sendMessage(from, {
+                image: { url: "https://i.ibb.co/xqddxGC6/d75ddb6631f10a0eff0b227c5b7617f2.jpg" },
+                caption: pingMessage,
+                contextInfo: {
+                    mentionedJid: [from],
+                    isForwarded: true,
+                    forwardedNewsletterMessageInfo: {
+                        newsletterJid: "status@broadcast",
+                        newsletterName: "© NEEXT LTDA",
+                        serverId: 200
+                    },
+                    externalAdReply: {
+                        title: `© NEEXT LTDA`,
+                        thumbnailUrl: "https://i.ibb.co/nqgG6z6w/IMG-20250720-WA0041-2.jpg",
+                        mediaType: 1,
+                        sourceUrl: "www.neext.online"
+                    }
+                }
+            }, { quoted: selinho });
+            
+            // Reply adicional como solicitado
+            await reply(sock, from, "🤖 Pong! Bot está online e funcionando perfeitamente!");
         }
         break;
 
