@@ -28,3 +28,7 @@ outputType = "console"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node main.js"
+
+[deployment]
+deploymentTarget = "vm"
+run = ["node", "main.js"]
