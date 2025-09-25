@@ -705,17 +705,21 @@ async function handleCommand(sock, message, command, args, from, quoted) {
             await reagirMensagem(sock, message, "⏳");
 
             try {
-                // Parse dos argumentos (packname | author)
+                // Parse dos argumentos (packname | author) fornecidos pelo usuário
                 const fullText = args.join(' ');
-                const [packname, author] = fullText.split('|').map(s => s.trim());
+                const [userPackname, userAuthor] = fullText.split('|').map(s => s.trim());
                 
-                if (!packname || !author) {
+                if (!userPackname || !userAuthor) {
                     await reagirMensagem(sock, message, "❌");
                     await sock.sendMessage(from, {
                         text: '❌ Use o formato: *.rename Pack Nome | Autor Nome*'
                     }, { quoted: message });
                     break;
                 }
+
+                // Usa APENAS os dados fornecidos pelo usuário
+                const packname = userPackname;
+                const author = userAuthor;
 
                 console.log(`🏷️ Renomeando figurinha: Pack="${packname}", Autor="${author}"`);
 
@@ -730,7 +734,7 @@ async function handleCommand(sock, message, command, args, from, quoted) {
                     buffer = Buffer.concat([buffer, chunk]);
                 }
 
-                // Opções personalizadas
+                // Opções personalizadas com dados do usuário + NEEXT
                 const options = {
                     packname: packname,
                     author: author
