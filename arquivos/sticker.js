@@ -18,12 +18,19 @@ async function bufferToWebp(buffer, isVideo = false) {
     fs.writeFileSync(input, buffer);
 
     await new Promise((resolve, reject) => {
-        ff(input)
+        const ffmpegCommand = ff(input)
             .on("error", reject)
-            .on("end", () => resolve())
+            .on("end", () => resolve());
+
+        // Para vídeos, adicionar tempo máximo de 3 segundos ANTES das opções (compatibilidade WhatsApp)
+        if (isVideo) {
+            ffmpegCommand.duration(3);
+        }
+
+        ffmpegCommand
             .addOutputOptions([
                 "-vcodec", "libwebp",
-                "-vf", "scale='min(320,iw)':min'(320,ih)':force_original_aspect_ratio=decrease,fps=15,pad=320:320:-1:-1:color=white@0.0",
+                "-vf", "scale='min(320,iw)':'min(320,ih)':force_original_aspect_ratio=decrease,fps=15,pad=320:320:-1:-1:color=white@0.0",
                 "-loop", "0",
                 "-preset", "default",
                 "-an",
@@ -37,33 +44,68 @@ async function bufferToWebp(buffer, isVideo = false) {
     return output;
 }
 
-// Cria sticker e envia
-async function createSticker(buffer, sock, from) {
+// Função writeExif para compatibilidade com index.js
+async function writeExif(media, metadata) {
+    const { mimetype, data } = media;
+    const { packname = "NEEXT LTDA", author = "NEEXT BOT", categories = ["😎"] } = metadata;
+    
+    // Detecta se é vídeo/GIF
+    const isVideo = mimetype && (
+        mimetype.includes('video') || 
+        mimetype.includes('gif') ||
+        mimetype === 'image/gif'
+    );
+    
+    const webpFile = await bufferToWebp(data, isVideo);
+    const img = new webp.Image();
+    await img.load(webpFile);
+
+    // Cria nome do pacote com data e hora
+    const agora = new Date();
+    const dataHora = `${agora.toLocaleDateString('pt-BR')} ${agora.toLocaleTimeString('pt-BR')}`;
+    
+    const json = {
+        "sticker-pack-id": `neext-${Date.now()}`,
+        "sticker-pack-name": `${packname} - ${dataHora}`,
+        "sticker-pack-publisher": `${author} - NEEXT LTDA`,
+        "sticker-pack-categories": categories
+    };
+
+    const exifAttr = Buffer.from([0x49,0x49,0x2A,0x00,0x08,0x00,0x00,0x00,0x01,0x00,0x41,0x57,0x07,0x00,0x00,0x00,0x00,0x00,0x16,0x00,0x00,0x00]);
+    const jsonBuff = Buffer.from(JSON.stringify(json), "utf-8");
+    const exif = Buffer.concat([exifAttr, jsonBuff]);
+    exif.writeUIntLE(jsonBuff.length, 14, 4);
+
+    img.exif = exif;
+    await img.save(webpFile);
+
+    return webpFile;
+}
+
+// Cria sticker e envia (versão melhorada)
+async function createSticker(buffer, sock, from, isVideo = false) {
     try {
-        const webpFile = await bufferToWebp(buffer);
-        const img = new webp.Image();
-        await img.load(webpFile);
-
-        const json = {
-            "sticker-pack-id": "bot",
-            "sticker-pack-name": "AutoFig",
-            "sticker-pack-publisher": "Bot"
-        };
-
-        const exifAttr = Buffer.from([0x49,0x49,0x2A,0x00,0x08,0x00,0x00,0x00,0x01,0x00,0x41,0x57,0x07,0x00,0x00,0x00,0x00,0x00,0x16,0x00,0x00,0x00]);
-        const jsonBuff = Buffer.from(JSON.stringify(json), "utf-8");
-        const exif = Buffer.concat([exifAttr, jsonBuff]);
-        exif.writeUIntLE(jsonBuff.length, 14, 4);
-
-        img.exif = exif;
-        await img.save(webpFile);
-
-        await sock.sendMessage(from, { sticker: fs.readFileSync(webpFile) });
+        const agora = new Date();
+        const dataHora = `${agora.toLocaleDateString('pt-BR')} ${agora.toLocaleTimeString('pt-BR')}`;
+        
+        const webpFile = await writeExif(
+            { mimetype: isVideo ? 'video/mp4' : 'image/jpeg', data: buffer },
+            { 
+                packname: "NEEXT LTDA", 
+                author: `NEEXT BOT - ${dataHora}`, 
+                categories: ["🔥"] 
+            }
+        );
+        
+        const stickerBuffer = fs.readFileSync(webpFile);
+        await sock.sendMessage(from, { sticker: stickerBuffer });
         fs.unlinkSync(webpFile);
+        
+        console.log("✅ Figurinha criada com sucesso!");
     } catch (err) {
         console.log("❌ Erro ao criar figurinha:", err);
         await sock.sendMessage(from, { text: "❌ Erro ao criar figurinha." });
     }
 }
 
-module.exports = { createSticker };
+module.exports = { createSticker, writeExif };

@@ -394,24 +394,116 @@ async function handleCommand(sock, message, command, args, from, quoted) {
 
         case "s":
             try {
-                const quotedMsg = message.message.extendedTextMessage?.contextInfo?.quotedMessage || message.message.imageMessage || message.message.videoMessage;
-                if (!quotedMsg) return await sock.sendMessage(from, { text: "❌ Marque uma imagem ou vídeo para criar figurinha" }, { quoted: message });
+                // Obtém hora atual para metadados
+                const agora = new Date();
+                const dataHora = `${agora.toLocaleDateString('pt-BR')} ${agora.toLocaleTimeString('pt-BR')}`;
+                
+                // Tenta detectar mídia de diferentes formas
+                let mediaMessage = null;
 
-                const type = quotedMsg.imageMessage ? "image" : quotedMsg.videoMessage ? "video" : null;
-                if (!type) return await sock.sendMessage(from, { text: "❌ Apenas imagens ou vídeos suportados" }, { quoted: message });
+                // 1. Verifica se é uma mensagem marcada (quotada)
+                let quotedMsg = message.message.extendedTextMessage?.contextInfo?.quotedMessage;
+                if (quotedMsg) {
+                    // Unwrap ephemeral/viewOnce wrappers para mensagens quotadas (todas as versões)
+                    if (quotedMsg.ephemeralMessage) quotedMsg = quotedMsg.ephemeralMessage.message;
+                    if (quotedMsg.viewOnceMessage) quotedMsg = quotedMsg.viewOnceMessage.message;
+                    if (quotedMsg.viewOnceMessageV2) quotedMsg = quotedMsg.viewOnceMessageV2.message;
+                    if (quotedMsg.viewOnceMessageV2Extension) quotedMsg = quotedMsg.viewOnceMessageV2Extension.message;
+                    
+                    if (quotedMsg.imageMessage || quotedMsg.videoMessage) {
+                        mediaMessage = quotedMsg;
+                    }
+                }
+                
+                // 2. Se não tem quotada, verifica se a própria mensagem tem mídia (enviada diretamente)
+                if (!mediaMessage && (message.message.imageMessage || message.message.videoMessage)) {
+                    mediaMessage = message.message;
+                }
 
-                const stream = await downloadContentFromMessage(quotedMsg, type);
+                // Se não encontrou nenhuma mídia
+                if (!mediaMessage) {
+                    await reagirMensagem(sock, message, "❌");
+                    return await sock.sendMessage(from, { 
+                        text: "❌ Para criar figurinha:\n• Marque uma imagem/vídeo e digite .s\n• Ou envie uma imagem/vídeo com legenda .s" 
+                    }, { quoted: message });
+                }
+
+                // Determina o tipo de mídia
+                const isImage = !!mediaMessage.imageMessage;
+                const isVideo = !!mediaMessage.videoMessage;
+                const type = isImage ? "image" : isVideo ? "video" : null;
+
+                if (!type) {
+                    await reagirMensagem(sock, message, "❌");
+                    return await sock.sendMessage(from, { 
+                        text: "❌ Apenas imagens, vídeos e GIFs são suportados para figurinhas" 
+                    }, { quoted: message });
+                }
+
+                // Reage indicando que está processando
+                await reagirMensagem(sock, message, "⏳");
+
+                // Faz download da mídia - CORRIGIDO para usar o nó específico
+                const mediaNode = isImage ? mediaMessage.imageMessage : mediaMessage.videoMessage;
+                
+                // Verifica se o mediaNode tem as chaves necessárias para download (incluindo Buffer/string vazios)
+                const hasValidMediaKey = mediaNode.mediaKey && 
+                    !(Buffer.isBuffer(mediaNode.mediaKey) && mediaNode.mediaKey.length === 0) && 
+                    !(typeof mediaNode.mediaKey === 'string' && mediaNode.mediaKey.length === 0);
+                    
+                const hasValidPath = mediaNode.directPath || mediaNode.url;
+
+                if (!hasValidMediaKey || !hasValidPath) {
+                    await reagirMensagem(sock, message, "❌");
+                    return await sock.sendMessage(from, { 
+                        text: "❌ Não foi possível acessar esta mídia marcada.\nTente:\n• Enviar a imagem/vídeo diretamente com legenda .s\n• Marcar uma mídia mais recente" 
+                    }, { quoted: message });
+                }
+
+                const stream = await downloadContentFromMessage(mediaNode, type);
                 let buffer = Buffer.from([]);
-                for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
+                for await (const chunk of stream) {
+                    buffer = Buffer.concat([buffer, chunk]);
+                }
 
-                const stickerPath = await writeExif({ mimetype: quotedMsg[type + "Message"].mimetype, data: buffer }, { packname: "NEEXT", author: "NEEXT BOT", categories: ["😎"] });
+                // Obtém o mimetype correto
+                const mimeType = isImage 
+                    ? mediaMessage.imageMessage.mimetype 
+                    : mediaMessage.videoMessage.mimetype;
+
+                console.log(`📄 Criando figurinha - Tipo: ${type}, Mimetype: ${mimeType}, Tamanho: ${buffer.length} bytes`);
+
+                // Cria figurinha com metadados da NEEXT
+                const stickerPath = await writeExif(
+                    { 
+                        mimetype: mimeType, 
+                        data: buffer 
+                    }, 
+                    { 
+                        packname: "NEEXT LTDA", 
+                        author: `NEEXT BOT - ${dataHora}`, 
+                        categories: ["🔥", "😎", "✨"] 
+                    }
+                );
+
+                // Envia a figurinha
                 const stickerBuffer = fs.readFileSync(stickerPath);
-                await sock.sendMessage(from, { sticker: stickerBuffer });
+                await sock.sendMessage(from, { sticker: stickerBuffer }, { quoted: message });
+
+                // Limpa arquivo temporário
                 fs.unlinkSync(stickerPath);
+
+                // Reage com sucesso
+                await reagirMensagem(sock, message, "✅");
+                
+                console.log("✅ Figurinha NEEXT criada e enviada com sucesso!");
 
             } catch (err) {
                 console.log("❌ Erro ao criar figurinha:", err);
-                await sock.sendMessage(from, { text: "❌ Erro ao criar figurinha" }, { quoted: message });
+                await reagirMensagem(sock, message, "❌");
+                await sock.sendMessage(from, { 
+                    text: "❌ Erro ao processar sua figurinha. Tente novamente ou use uma imagem/vídeo menor." 
+                }, { quoted: message });
             }
             break;
 
@@ -485,10 +577,23 @@ function setupListeners(sock) {
                 }
             }
 
-            // 🔹 /s sem prefixo
+            // 🔹 /s sem prefixo (comando especial)
             else if (text.startsWith("/s")) {
-                if (quoted?.imageMessage || quoted?.videoMessage) {
-                    await handleCommand(sock, normalized, "s", [], from, quoted);
+                try {
+                    // Verifica se tem mídia marcada ou na própria mensagem
+                    const quotedMsg = normalized.message.extendedTextMessage?.contextInfo?.quotedMessage;
+                    const hasQuotedMedia = quotedMsg && (quotedMsg.imageMessage || quotedMsg.videoMessage);
+                    const hasDirectMedia = normalized.message.imageMessage || normalized.message.videoMessage;
+                    
+                    if (hasQuotedMedia || hasDirectMedia) {
+                        await handleCommand(sock, normalized, "s", [], from, quoted);
+                    } else {
+                        await reagirMensagem(sock, normalized, "❌");
+                        await reply(sock, from, "❌ Para usar /s você precisa:\n• Marcar uma imagem/vídeo e digitar /s\n• Ou enviar uma imagem/vídeo com legenda /s");
+                    }
+                } catch (err) {
+                    console.error("❌ Erro no comando /s:", err);
+                    await reply(sock, from, "❌ Erro ao processar comando /s");
                 }
             }
 
