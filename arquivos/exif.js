@@ -2,11 +2,14 @@ const fs = require('fs');
 const { writeExif } = require('./sticker.js');
 
 // Função para converter imagem para WebP
-async function imageToWebp(buffer) {
+async function imageToWebp(buffer, customMetadata = {}) {
     try {
         // Usa a função existente do sticker.js
         const media = { data: buffer, mimetype: 'image/jpeg' };
-        const metadata = { packname: "NEEXT LTDA", author: "NEEXT BOT" };
+        const metadata = { 
+            packname: customMetadata.packname || "NEEXT LTDA", 
+            author: customMetadata.author || "NEEXT BOT" 
+        };
         return await writeExif(media, metadata);
     } catch (error) {
         console.error('Erro ao converter imagem para WebP:', error);
@@ -15,11 +18,14 @@ async function imageToWebp(buffer) {
 }
 
 // Função para converter vídeo para WebP
-async function videoToWebp(buffer) {
+async function videoToWebp(buffer, customMetadata = {}) {
     try {
         // Usa a função existente do sticker.js para vídeos
         const media = { data: buffer, mimetype: 'video/mp4' };
-        const metadata = { packname: "NEEXT LTDA", author: "NEEXT BOT" };
+        const metadata = { 
+            packname: customMetadata.packname || "NEEXT LTDA", 
+            author: customMetadata.author || "NEEXT BOT" 
+        };
         return await writeExif(media, metadata);
     } catch (error) {
         console.error('Erro ao converter vídeo para WebP:', error);
