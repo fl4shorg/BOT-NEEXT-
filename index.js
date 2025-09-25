@@ -688,16 +688,16 @@ async function handleCommand(sock, message, command, args, from, quoted) {
                           '📝 *.rename Pack Nome | Autor Nome*\n\n' +
                           '💡 *Exemplo:*\n' +
                           '*.rename Meus Stickers | João*\n\n' +
-                          '📌 Responda uma imagem ou vídeo com este comando para criar um sticker personalizado!'
+                          '📌 Responda uma figurinha existente com este comando para renomeá-la!'
                 }, { quoted: message });
                 break;
             }
 
-            // Verifica se tem mídia citada
+            // Verifica se tem figurinha citada
             const quotedMsg = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
-            if (!quotedMsg) {
+            if (!quotedMsg || !quotedMsg.stickerMessage) {
                 await sock.sendMessage(from, {
-                    text: '❌ Você precisa responder a uma imagem ou vídeo para usar este comando!'
+                    text: '❌ Você precisa responder a uma figurinha para usar este comando!'
                 }, { quoted: message });
                 break;
             }
@@ -717,28 +717,16 @@ async function handleCommand(sock, message, command, args, from, quoted) {
                     break;
                 }
 
-                // Detecta tipo de mídia
-                const isImage = quotedMsg.imageMessage;
-                const isVideo = quotedMsg.videoMessage;
+                console.log(`🏷️ Renomeando figurinha: Pack="${packname}", Autor="${author}"`);
 
-                if (!isImage && !isVideo) {
-                    await reagirMensagem(sock, message, "❌");
-                    await sock.sendMessage(from, {
-                        text: '❌ Apenas imagens e vídeos podem ser convertidos em stickers!'
-                    }, { quoted: message });
-                    break;
-                }
-
-                console.log(`🏷️ Criando sticker: Pack="${packname}", Autor="${author}"`);
-
-                // Baixa a mídia
-                const mediaBuffer = await downloadContentFromMessage(
-                    isImage ? quotedMsg.imageMessage : quotedMsg.videoMessage,
-                    isImage ? 'image' : 'video'
+                // Baixa a figurinha original
+                const stickerBuffer = await downloadContentFromMessage(
+                    quotedMsg.stickerMessage,
+                    'sticker'
                 );
 
                 let buffer = Buffer.concat([]);
-                for await (const chunk of mediaBuffer) {
+                for await (const chunk of stickerBuffer) {
                     buffer = Buffer.concat([buffer, chunk]);
                 }
 
@@ -748,21 +736,25 @@ async function handleCommand(sock, message, command, args, from, quoted) {
                     author: author
                 };
 
-                // Envia como sticker personalizado
-                if (isImage) {
-                    await sendImageAsSticker(sock, from, buffer, message, options);
-                } else {
+                // Detecta se é animada (webp com vídeo) ou estática
+                const isAnimated = quotedMsg.stickerMessage.isAnimated || 
+                                 buffer.toString('hex', 0, 4) === '52494646'; // RIFF header (WebP animado)
+
+                // Reenvia a figurinha com novos metadados
+                if (isAnimated) {
                     await sendVideoAsSticker(sock, from, buffer, message, options);
+                } else {
+                    await sendImageAsSticker(sock, from, buffer, message, options);
                 }
 
                 await reagirMensagem(sock, message, "✅");
-                console.log('✅ Sticker personalizado criado com sucesso!');
+                console.log('✅ Figurinha renomeada com sucesso!');
 
             } catch (error) {
                 console.error('❌ Erro no comando rename:', error.message);
                 await reagirMensagem(sock, message, "❌");
                 await sock.sendMessage(from, {
-                    text: '❌ Erro ao criar sticker personalizado. Tente novamente!'
+                    text: '❌ Erro ao renomear figurinha. Tente novamente!'
                 }, { quoted: message });
             }
             break;
