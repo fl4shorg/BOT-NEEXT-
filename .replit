@@ -4,6 +4,7 @@ expertMode = true
 
 [nix]
 channel = "stable-25_05"
+packages = ["ffmpeg"]
 
 [workflows]
 runButton = "Project"
@@ -21,9 +22,9 @@ args = "WhatsApp Bot"
 name = "WhatsApp Bot"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node main.js"
-
-[workflows.workflow.metadata]
-outputType = "console"
