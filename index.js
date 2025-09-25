@@ -14,6 +14,7 @@ const axios = require("axios");
 const os = require("os");
 const { writeExif } = require("./arquivos/sticker.js");
 const Jimp = require("jimp");
+const pinterest = require('./Pinterest.js');
 const settings = require('./settings/settings.json');
 
 const antilinkFile = path.join(__dirname, "antilink.json");
@@ -596,6 +597,85 @@ async function handleCommand(sock, message, command, args, from, quoted) {
                     text: '❌ Erro ao gerar imagem BRAT. Tente novamente!' 
                 }, { quoted: message });
                 await reagirMensagem(sock, message, "❌");
+            }
+            break;
+        }
+
+        case 'pinterest': {
+            const query = args.join(' ');
+            if (!query) {
+                await sock.sendMessage(from, { text: '❌ Digite uma palavra-chave para buscar!\n\nExemplo: *.pinterest gatos*' }, { quoted: message });
+                break;
+            }
+
+            console.log(`📌 Buscando imagens no Pinterest: "${query}"`);
+            await reagirMensagem(sock, message, "⏳");
+
+            try {
+                // Busca imagens no Pinterest
+                const results = await pinterest(query);
+                
+                if (!results || results.length === 0) {
+                    await reagirMensagem(sock, message, "❌");
+                    await sock.sendMessage(from, { 
+                        text: '❌ Nenhuma imagem encontrada para essa busca. Tente uma palavra-chave diferente.' 
+                    }, { quoted: message });
+                    break;
+                }
+
+                // Pega até 5 imagens dos resultados
+                const imagesToSend = results.slice(0, 5);
+                console.log(`📥 Encontradas ${results.length} imagens, enviando ${imagesToSend.length}`);
+
+                await reagirMensagem(sock, message, "✅");
+
+                // Envia cada imagem encontrada
+                for (let i = 0; i < imagesToSend.length; i++) {
+                    const result = imagesToSend[i];
+                    
+                    // Prepara a legenda da imagem
+                    const caption = `📌 *Pinterest Search Result ${i + 1}*\n\n` +
+                                  `👤 *Por:* ${result.fullname || result.upload_by || 'Anônimo'}\n` +
+                                  `📝 *Descrição:* ${result.caption || 'Sem descrição'}\n` +
+                                  `👥 *Seguidores:* ${result.followers || 0}\n\n` +
+                                  `🔗 *Link:* ${result.source}\n\n` +
+                                  `© NEEXT LTDA - Pinterest Search`;
+
+                    // Envia a imagem
+                    await sock.sendMessage(from, {
+                        image: { url: result.image },
+                        caption: caption,
+                        contextInfo: {
+                            forwardingScore: 100000,
+                            isForwarded: true,
+                            forwardedNewsletterMessageInfo: {
+                                newsletterJid: "120363289739581116@newsletter",
+                                newsletterName: "🐦‍🔥⃝ 𝆅࿙⵿ׂ𝆆𝝢𝝣𝝣𝝬𝗧𓋌𝗟𝗧𝗗𝗔⦙⦙ꜣྀ"
+                            },
+                            externalAdReply: {
+                                title: "© NEEXT LTDA - Pinterest Search",
+                                body: `📌 Resultado ${i + 1} de ${imagesToSend.length} • Instagram: @neet.tk`,
+                                thumbnailUrl: "https://i.ibb.co/nqgG6z6w/IMG-20250720-WA0041-2.jpg",
+                                mediaType: 1,
+                                sourceUrl: "www.neext.online"
+                            }
+                        }
+                    }, { quoted: message });
+
+                    // Aguarda um pouco entre os envios para evitar spam
+                    if (i < imagesToSend.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                }
+
+                console.log(`✅ ${imagesToSend.length} imagens do Pinterest enviadas com sucesso!`);
+
+            } catch (error) {
+                console.error('❌ Erro ao buscar no Pinterest:', error.message);
+                await reagirMensagem(sock, message, "❌");
+                await sock.sendMessage(from, { 
+                    text: '❌ Erro ao buscar imagens no Pinterest. Tente novamente mais tarde!' 
+                }, { quoted: message });
             }
             break;
         }
