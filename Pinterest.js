@@ -4,40 +4,46 @@ const cheerio = require('cheerio');
 function pinterest(query) {
         return new Promise(async(resolve, reject) => {
                 try {
-                        console.log(`📌 Buscando imagens no Pinterest: "${query}"`);
+                        console.log(`📌 Tentando método principal do Pinterest: "${query}"`);
                         
-                        const { data } = await axios.get('https://id.pinterest.com/search/pins/?autologin=true&q=' + query, {
+                        // Método 1: Scraping com headers atualizados
+                        const response = await axios.get(`https://www.pinterest.com/search/pins/?q=${encodeURIComponent(query)}`, {
                                 headers: {
-                                        "cookie": "_auth=1; _b=\"AVna7S1p7l1C5I9u0+nR3YzijpvXOPc6d09SyCzO+DcwpersQH36SmGiYfymBKhZcGg=\"; _pinterest_sess=TWc9PSZHamJOZ0JobUFiSEpSN3Z4a2NsMk9wZ3gxL1NSc2k2NkFLaUw5bVY5cXR5alZHR0gxY2h2MVZDZlNQalNpUUJFRVR5L3NlYy9JZkthekp3bHo5bXFuaFZzVHJFMnkrR3lTbm56U3YvQXBBTW96VUgzVUhuK1Z4VURGKzczUi9hNHdDeTJ5Y2pBTmxhc2owZ2hkSGlDemtUSnYvVXh5dDNkaDN3TjZCTk8ycTdHRHVsOFg2b2NQWCtpOWxqeDNjNkk3cS85MkhhSklSb0hwTnZvZVFyZmJEUllwbG9UVnpCYVNTRzZxOXNJcmduOVc4aURtM3NtRFo3STlmWjJvSjlWTU5ITzg0VUg1NGhOTEZzME9kV2c9PSZlZGZlM2Y=; _ir=0",
-                                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+                                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                                        'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+                                        'Accept-Encoding': 'gzip, deflate, br',
+                                        'Connection': 'keep-alive',
+                                        'Upgrade-Insecure-Requests': '1'
                                 },
-                                timeout: 10000
+                                timeout: 15000
                         });
 
-                        const $ = cheerio.load(data);
-                        const result = [];
-                        const hasil = [];
+                        const $ = cheerio.load(response.data);
+                        const imageUrls = [];
 
-                        $('div > a').get().map(b => {
-                                const link = $(b).find('img').attr('src');
-                                result.push(link);
+                        // Procura por imagens em diferentes formatos de Pinterest
+                        $('img[src*="pinimg.com"]').each((i, img) => {
+                                const src = $(img).attr('src');
+                                if (src && src.includes('pinimg.com') && !src.includes('avatar')) {
+                                        // Converte para alta resolução
+                                        const highResSrc = src.replace(/\/\d+x/g, '/736x').replace(/\/\d+X/g, '/736X');
+                                        imageUrls.push(highResSrc);
+                                }
                         });
 
-                        result.forEach(v => {
-                                if(v == undefined) return;
-                                hasil.push(v.replace(/236/g,'736')); // Muda resolução para melhor qualidade
-                        });
+                        // Remove duplicatas
+                        const uniqueUrls = [...new Set(imageUrls)];
 
-                        hasil.shift(); // Remove primeiro elemento vazio
-
-                        if (hasil.length === 0) {
-                                console.log('❌ Pinterest: Nenhuma imagem encontrada');
-                                resolve([]);
+                        if (uniqueUrls.length === 0) {
+                                console.log('🔄 Método principal falhou, tentando alternativo...');
+                                const fallbackResults = await pinterest2(query);
+                                resolve(fallbackResults);
                                 return;
                         }
 
                         // Limita a 8 resultados para evitar spam
-                        const limitedResults = hasil.slice(0, 8);
+                        const limitedResults = uniqueUrls.slice(0, 8);
                         
                         // Converte para formato esperado pelo bot
                         const formattedResults = limitedResults.map((imageUrl, index) => ({
