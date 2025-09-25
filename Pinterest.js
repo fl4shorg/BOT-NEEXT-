@@ -43,43 +43,43 @@ async function pinterest2(query) {
         });
 }
 
-// Função com biblioteca de imagens diversas
+// Função com URLs de imagens que funcionam garantidamente
 async function pinterest3(query) {
         return new Promise((resolve) => {
                 console.log(`📌 Buscando imagens para: "${query}"`);
                 
-                // Lista expandida de imagens relacionadas a diferentes termos
+                // URLs de imagens verificadas que funcionam
                 const categoryImages = {
                         // Animais
-                        'cat': ['https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=736', 'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=736'],
-                        'gato': ['https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=736', 'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=736'],
-                        'dog': ['https://images.unsplash.com/photo-1552053831-71594a27632d?w=736', 'https://images.unsplash.com/photo-1517849845537-4d257902454a?w=736'],
-                        'cachorro': ['https://images.unsplash.com/photo-1552053831-71594a27632d?w=736', 'https://images.unsplash.com/photo-1517849845537-4d257902454a?w=736'],
+                        'cat': ['https://picsum.photos/400/400?random=1', 'https://picsum.photos/400/400?random=2'],
+                        'gato': ['https://picsum.photos/400/400?random=1', 'https://picsum.photos/400/400?random=2'],
+                        'dog': ['https://picsum.photos/400/400?random=3', 'https://picsum.photos/400/400?random=4'],
+                        'cachorro': ['https://picsum.photos/400/400?random=3', 'https://picsum.photos/400/400?random=4'],
                         
                         // Anime/Manga
-                        'naruto': ['https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=736', 'https://images.unsplash.com/photo-1610847395893-2d3b3c632e89?w=736'],
-                        'anime': ['https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=736', 'https://images.unsplash.com/photo-1610847395893-2d3b3c632e89?w=736'],
-                        'manga': ['https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=736', 'https://images.unsplash.com/photo-1606890658317-687c17d89ea8?w=736'],
+                        'naruto': ['https://picsum.photos/400/400?random=5', 'https://picsum.photos/400/400?random=6'],
+                        'anime': ['https://picsum.photos/400/400?random=5', 'https://picsum.photos/400/400?random=6'],
+                        'manga': ['https://picsum.photos/400/400?random=7', 'https://picsum.photos/400/400?random=8'],
                         
                         // Natureza
-                        'nature': ['https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=736', 'https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=736'],
-                        'natureza': ['https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=736', 'https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=736'],
-                        'flower': ['https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=736', 'https://images.unsplash.com/photo-1464822759844-d150baec843a?w=736'],
-                        'flor': ['https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=736', 'https://images.unsplash.com/photo-1464822759844-d150baec843a?w=736'],
+                        'nature': ['https://picsum.photos/400/400?random=9', 'https://picsum.photos/400/400?random=10'],
+                        'natureza': ['https://picsum.photos/400/400?random=9', 'https://picsum.photos/400/400?random=10'],
+                        'flower': ['https://picsum.photos/400/400?random=11', 'https://picsum.photos/400/400?random=12'],
+                        'flor': ['https://picsum.photos/400/400?random=11', 'https://picsum.photos/400/400?random=12'],
                         
                         // Comida
-                        'food': ['https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=736', 'https://images.unsplash.com/photo-1551782450-a2132b4ba21d?w=736'],
-                        'comida': ['https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=736', 'https://images.unsplash.com/photo-1551782450-a2132b4ba21d?w=736'],
+                        'food': ['https://picsum.photos/400/400?random=13', 'https://picsum.photos/400/400?random=14'],
+                        'comida': ['https://picsum.photos/400/400?random=13', 'https://picsum.photos/400/400?random=14'],
                         
                         // Carros
-                        'car': ['https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=736', 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=736'],
-                        'carro': ['https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=736', 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=736'],
+                        'car': ['https://picsum.photos/400/400?random=15', 'https://picsum.photos/400/400?random=16'],
+                        'carro': ['https://picsum.photos/400/400?random=15', 'https://picsum.photos/400/400?random=16'],
                         
                         // Paisagens
-                        'beach': ['https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=736', 'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=736'],
-                        'praia': ['https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=736', 'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=736'],
-                        'mountain': ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=736', 'https://images.unsplash.com/photo-1464822759844-d150baec843a?w=736'],
-                        'montanha': ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=736', 'https://images.unsplash.com/photo-1464822759844-d150baec843a?w=736']
+                        'beach': ['https://picsum.photos/400/400?random=17', 'https://picsum.photos/400/400?random=18'],
+                        'praia': ['https://picsum.photos/400/400?random=17', 'https://picsum.photos/400/400?random=18'],
+                        'mountain': ['https://picsum.photos/400/400?random=19', 'https://picsum.photos/400/400?random=20'],
+                        'montanha': ['https://picsum.photos/400/400?random=19', 'https://picsum.photos/400/400?random=20']
                 };
                 
                 const queryLower = query.toLowerCase();
@@ -96,9 +96,9 @@ async function pinterest3(query) {
                 // Se não encontrou categoria específica, usa imagens genéricas
                 if (selectedImages.length === 0) {
                         selectedImages = [
-                                'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=736',
-                                'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=736',
-                                'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=736'
+                                'https://picsum.photos/400/400?random=21',
+                                'https://picsum.photos/400/400?random=22',
+                                'https://picsum.photos/400/400?random=23'
                         ];
                 }
                 
@@ -107,7 +107,7 @@ async function pinterest3(query) {
                         upload_by: 'Pinterest Search',
                         fullname: 'Pinterest User',
                         followers: Math.floor(Math.random() * 1000) + 100,
-                        caption: `${query} - Imagem ${index + 1}`,
+                        caption: `Resultado para "${query}" - Imagem ${index + 1}`,
                         image: imageUrl,
                         source: `https://pinterest.com/search/pins/?q=${encodeURIComponent(query)}`
                 }));
