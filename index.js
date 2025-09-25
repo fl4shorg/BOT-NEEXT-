@@ -524,6 +524,77 @@ async function handleCommand(sock, message, command, args, from, quoted) {
             }
             break;
 
+        case 'brat': {
+            const text = args.join(' ');
+            if (!text) {
+                await sock.sendMessage(from, { text: '❌ Digite um texto!\n\nExemplo: *.brat neext*' }, { quoted: message });
+                break;
+            }
+
+            console.log(`🎨 Gerando imagem BRAT: "${text}"`);
+            await reagirMensagem(sock, message, "⏳");
+
+            try {
+                // Faz requisição para API BRAT
+                const apiUrl = `https://api.ypnk.dpdns.org/api/image/brat?text=${encodeURIComponent(text)}`;
+                const response = await axios.get(apiUrl, { responseType: 'arraybuffer' });
+                
+                if (!response.data) {
+                    throw new Error('API retornou dados vazios');
+                }
+
+                // Salva imagem temporária
+                const tempImagePath = `./temp_brat_${Date.now()}.png`;
+                fs.writeFileSync(tempImagePath, response.data);
+                
+                console.log(`📥 Imagem BRAT baixada: ${response.data.length} bytes`);
+
+                // Converte para sticker usando a função existente
+                const stickerPath = await criarSticker(
+                    tempImagePath, 
+                    "© NEEXT LTDA\n🐦‍🔥 Instagram: @neet.tk",
+                    "NEEXT BOT", 
+                    { categories: ["🎨", "💚", "🔥"] }
+                );
+
+                // Envia a figurinha BRAT com contextInfo de anúncio
+                const stickerBuffer = fs.readFileSync(stickerPath);
+                await sock.sendMessage(from, { 
+                    sticker: stickerBuffer,
+                    contextInfo: {
+                        forwardingScore: 100000,
+                        isForwarded: true,
+                        forwardedNewsletterMessageInfo: {
+                            newsletterJid: "120363289739581116@newsletter",
+                            newsletterName: "🐦‍🔥⃝ 𝆅࿙⵿ׂ𝆆𝝢𝝣𝝣𝝬𝗧𓋌𝗟𝗧𝗗𝗔⦙⦙ꜣྀ"
+                        },
+                        externalAdReply: {
+                            title: "© NEEXT LTDA - BRAT",
+                            body: "🎨 Figurinha BRAT criada • Instagram: @neet.tk",
+                            thumbnailUrl: "https://i.ibb.co/nqgG6z6w/IMG-20250720-WA0041-2.jpg",
+                            mediaType: 1,
+                            sourceUrl: "www.neext.online"
+                        }
+                    }
+                }, { quoted: message });
+
+                // Limpa arquivos temporários
+                fs.unlinkSync(tempImagePath);
+                fs.unlinkSync(stickerPath);
+
+                await reagirMensagem(sock, message, "✅");
+                console.log('✅ Figurinha BRAT criada e enviada com sucesso!');
+
+            } catch (error) {
+                console.error('❌ Erro ao gerar BRAT:', error.message);
+                await sock.sendMessage(from, { 
+                    text: '❌ Erro ao gerar imagem BRAT. Tente novamente!' 
+                }, { quoted: message });
+                await reagirMensagem(sock, message, "❌");
+            }
+            break;
+        }
+
         default:
             await sock.sendMessage(from, { text: `❌ Comando "${command}" não encontrado.\n\nDigite /oi para ajuda.` }, { quoted: message });
             break;
