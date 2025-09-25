@@ -36,11 +36,11 @@ async function videoToWebp(buffer, customMetadata = {}) {
 // Função para escrever EXIF em imagens com dados personalizados
 async function writeExifImg(buffer, options = {}) {
     try {
-        // Usa APENAS os valores fornecidos pelo usuário, sem fallbacks
+        // Marca como rename para usar APENAS valores do usuário
         const packname = options.packname;
         const author = options.author;
         const media = { data: buffer, mimetype: 'image/jpeg' };
-        const metadata = { packname, author };
+        const metadata = { packname, author, _isRename: true };
         return await writeExif(media, metadata);
     } catch (error) {
         console.error('Erro ao escrever EXIF na imagem:', error);
@@ -51,11 +51,11 @@ async function writeExifImg(buffer, options = {}) {
 // Função para escrever EXIF em vídeos com dados personalizados
 async function writeExifVid(buffer, options = {}) {
     try {
-        // Usa APENAS os valores fornecidos pelo usuário, sem fallbacks
+        // Marca como rename para usar APENAS valores do usuário
         const packname = options.packname;
         const author = options.author;
         const media = { data: buffer, mimetype: 'video/mp4' };
-        const metadata = { packname, author };
+        const metadata = { packname, author, _isRename: true };
         return await writeExif(media, metadata);
     } catch (error) {
         console.error('Erro ao escrever EXIF no vídeo:', error);
@@ -66,7 +66,7 @@ async function writeExifVid(buffer, options = {}) {
             const packname = options.packname;
             const author = options.author;
             const media = { data: buffer, mimetype: 'image/webp' };
-            const metadata = { packname, author };
+            const metadata = { packname, author, _isRename: true };
             return await writeExif(media, metadata);
         } catch (fallbackError) {
             console.error('❌ Fallback também falhou:', fallbackError);

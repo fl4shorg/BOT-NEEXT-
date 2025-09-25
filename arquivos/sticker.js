@@ -48,10 +48,21 @@ async function bufferToWebp(buffer, isVideo = false) {
 async function writeExif(media, metadata) {
     const { mimetype, data } = media;
     
-    // Usa valores fornecidos pelo usuário OU padrões NEEXT apenas se não houver valores
-    const packname = metadata.packname || "NEEXT LTDA";
-    const author = metadata.author || "NEEXT BOT";
-    const categories = metadata.categories || ["😎"];
+    // Para comando RENAME: usa EXATAMENTE os valores fornecidos sem fallbacks
+    // Para outros comandos: usa fallbacks NEEXT se não houver valores
+    let packname, author, categories;
+    
+    if (metadata._isRename) {
+        // Comando rename: usa APENAS os valores fornecidos pelo usuário
+        packname = metadata.packname;
+        author = metadata.author;
+        categories = metadata.categories || ["😎"];
+    } else {
+        // Outros comandos: pode usar fallbacks NEEXT
+        packname = metadata.packname || "NEEXT LTDA";
+        author = metadata.author || "NEEXT BOT";
+        categories = metadata.categories || ["😎"];
+    }
     
     // Detecta se é vídeo/GIF
     const isVideo = mimetype && (
