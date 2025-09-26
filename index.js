@@ -1072,17 +1072,29 @@ async function handleCommand(sock, message, command, args, from, quoted) {
 
                 const videoBuffer = Buffer.from(videoResponse.data);
 
-                // Prepara a caption com a thumbnail 
-                let caption = "📹 *Vídeo do Instagram baixado com sucesso!*\n\n";
+                // Baixa a thumbnail se existir
+                let thumbnailBuffer = null;
                 if (videoData.thumbnail) {
-                    caption += `🖼️ Thumbnail: ${videoData.thumbnail}\n\n`;
+                    try {
+                        const thumbnailResponse = await axios({
+                            method: 'GET',
+                            url: videoData.thumbnail,
+                            responseType: 'arraybuffer'
+                        });
+                        thumbnailBuffer = Buffer.from(thumbnailResponse.data);
+                    } catch (err) {
+                        console.log("❌ Erro ao baixar thumbnail:", err.message);
+                    }
                 }
-                caption += "© NEEXT LTDA";
 
-                // Envia o vídeo com a caption
+                // Prepara a caption simples
+                const caption = "📹 *Vídeo do Instagram baixado com sucesso!*\n\n© NEEXT LTDA";
+
+                // Envia o vídeo com a thumbnail como caption (se disponível)
                 await sock.sendMessage(from, {
                     video: videoBuffer,
                     caption: caption,
+                    jpegThumbnail: thumbnailBuffer,
                     contextInfo: {
                         isForwarded: true,
                         forwardingScore: 100000,
