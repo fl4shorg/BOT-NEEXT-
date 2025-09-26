@@ -16,6 +16,7 @@ const { writeExif } = require("./arquivos/sticker.js");
 const { sendImageAsSticker, sendVideoAsSticker } = require("./arquivos/rename.js");
 const Jimp = require("jimp");
 const pinterest = require('./Pinterest.js');
+const { igdl } = require('./Instagram.js');
 const settings = require('./settings/settings.json');
 const { Aki } = require('aki-api');
 const cloudscraper = require('cloudscraper');
@@ -1021,6 +1022,91 @@ async function handleCommand(sock, message, command, args, from, quoted) {
                 await reagirMensagem(sock, message, "✅");
             } else {
                 await reply(sock, from, "Somente o(s) adm(s) ou a pessoa que iniciou o jogo podem resetar.");
+            }
+        }
+        break;
+
+        case "instagram":
+        case "ig": {
+            try {
+                // Verifica se foi fornecido um link
+                if (!args[0]) {
+                    await reply(sock, from, "❌ Por favor, forneça um link do Instagram.\n\nExemplo: `.ig https://instagram.com/p/xxxxx`");
+                    break;
+                }
+
+                const url = args[0];
+                
+                // Verifica se é um link válido do Instagram
+                if (!url.includes('instagram.com') && !url.includes('instagr.am')) {
+                    await reply(sock, from, "❌ Link inválido! Use um link do Instagram.");
+                    break;
+                }
+
+                await reagirMensagem(sock, message, "⏳");
+                await reply(sock, from, "📥 Baixando vídeo do Instagram, aguarde...");
+
+                // Chama a API do Instagram
+                const result = await igdl(url);
+                
+                if (!result.status || !result.data || result.data.length === 0) {
+                    await reagirMensagem(sock, message, "❌");
+                    await reply(sock, from, "❌ Não foi possível baixar este vídeo. Verifique se o link está correto e se o post é público.");
+                    break;
+                }
+
+                const videoData = result.data[0];
+                
+                if (!videoData.url) {
+                    await reagirMensagem(sock, message, "❌");
+                    await reply(sock, from, "❌ Vídeo não encontrado neste post.");
+                    break;
+                }
+
+                // Baixa o vídeo usando axios
+                const videoResponse = await axios({
+                    method: 'GET',
+                    url: videoData.url,
+                    responseType: 'arraybuffer'
+                });
+
+                const videoBuffer = Buffer.from(videoResponse.data);
+
+                // Prepara a caption com a thumbnail 
+                let caption = "📹 *Vídeo do Instagram baixado com sucesso!*\n\n";
+                if (videoData.thumbnail) {
+                    caption += `🖼️ Thumbnail: ${videoData.thumbnail}\n\n`;
+                }
+                caption += "© NEEXT LTDA";
+
+                // Envia o vídeo com a caption
+                await sock.sendMessage(from, {
+                    video: videoBuffer,
+                    caption: caption,
+                    contextInfo: {
+                        isForwarded: true,
+                        forwardingScore: 100000,
+                        forwardedNewsletterMessageInfo: {
+                            newsletterJid: "120363289739581116@newsletter",
+                            newsletterName: "🐦‍🔥⃝ 𝆅࿙⵿ׂ𝆆𝝢𝝣𝝣𝝬𝗧𓋌𝗟𝗧𝗗𝗔⦙⦙ꜣྀ"
+                        },
+                        externalAdReply: {
+                            title: "© NEEXT LTDA - Instagram Downloader",
+                            body: "📱 Instagram: @neet.tk",
+                            thumbnailUrl: videoData.thumbnail || "https://i.ibb.co/nqgG6z6w/IMG-20250720-WA0041-2.jpg",
+                            mediaType: 1,
+                            sourceUrl: "https://www.neext.online",
+                            showAdAttribution: true
+                        }
+                    }
+                }, { quoted: selinho2 });
+
+                await reagirMensagem(sock, message, "✅");
+                
+            } catch (error) {
+                console.error("❌ Erro no comando Instagram:", error);
+                await reagirMensagem(sock, message, "❌");
+                await reply(sock, from, "❌ Erro ao baixar vídeo do Instagram. Tente novamente mais tarde.");
             }
         }
         break;

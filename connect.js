@@ -104,14 +104,11 @@ async function startBot() {
     const { version } = await fetchLatestBaileysVersion();
 
     let metodo = "qr";
-    // Always use QR in Replit environment for easier setup
-    if(!state.creds.registered) {
-        console.log("🔄 Primeira conexão detectada - usando QR Code");
-        metodo = "qr";
-    }
+    if(!state.creds.registered) metodo = await perguntarMetodoConexao();
 
     const sock = makeWASocket({
         auth: state,
+        printQRInTerminal: metodo==="qr",
         browser: ["MacOS","Safari","16.5"],
         logger,
         version,
@@ -143,15 +140,7 @@ async function startBot() {
     sock.ev.on("creds.update", saveCreds);
 
     sock.ev.on("connection.update", async (update)=>{
-        const { connection, lastDisconnect, qr } = update;
-        
-        // Handle QR code display
-        if(qr && metodo === "qr") {
-            const QRCode = require('qrcode-terminal');
-            console.log("\n📱 Escaneie o QR Code abaixo com seu WhatsApp:");
-            QRCode.generate(qr, { small: true });
-        }
-        
+        const { connection, lastDisconnect } = update;
         if(connection==="open"){
             mostrarBanner();
             console.log(`✅ Conectado ao sistema da Neext em ${new Date().toLocaleString()}`);
