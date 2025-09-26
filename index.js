@@ -1123,6 +1123,157 @@ async function handleCommand(sock, message, command, args, from, quoted) {
         }
         break;
 
+        case "hermitwhite": {
+            try {
+                // Verifica se foram passados argumentos suficientes (mínimo 5: nome pode ter espaços + 4 outros campos)
+                if (args.length < 5) {
+                    const instrucoes = `🆔 *CRIAÇÃO DE ID - NEEXT LTDA*
+
+📋 **Como usar:**
+\`${prefix}hermitwhite [nome] [idade] [telefone] [instagram] [email]\`
+
+📝 **Exemplo:**
+\`${prefix}hermitwhite João Silva 25 5527999999999 @joao_silva joao@gmail.com\`
+
+⚠️ **Importante:**
+• Todos os campos são obrigatórios
+• Instagram deve incluir o @
+• Telefone no formato completo (ex: 5527999999999)`;
+
+                    await sock.sendMessage(from, {
+                        text: instrucoes,
+                        contextInfo: {
+                            forwardingScore: 100000,
+                            isForwarded: true,
+                            forwardedNewsletterMessageInfo: {
+                                newsletterJid: "120363289739581116@newsletter",
+                                newsletterName: "🐦‍🔥⃝ 𝆅࿙⵿ׂ𝆆𝝢𝝣𝝣𝝬𝗧𓋌𝗟𝗧𝗗𝗔⦙⦙ꜣྀ"
+                            },
+                            externalAdReply: {
+                                title: "© NEEXT LTDA - Sistema de IDs",
+                                body: "📱 Instagram: @neet.tk",
+                                thumbnailUrl: "https://i.ibb.co/nqgG6z6w/IMG-20250720-WA0041-2.jpg",
+                                mediaType: 1,
+                                sourceUrl: "https://www.neext.online",
+                                showAdAttribution: true
+                            }
+                        }
+                    }, { quoted: message });
+                    break;
+                }
+
+                // Coleta os dados dos argumentos - nome pode ter espaços, então pegamos os últimos 4 campos
+                const email = args[args.length - 1];
+                const instagram = args[args.length - 2];
+                const numero = args[args.length - 3];
+                const idade = args[args.length - 4];
+                const nome = args.slice(0, args.length - 4).join(' ');
+                
+                // Validações básicas
+                if (!nome || !idade || !numero || !instagram || !email) {
+                    await reply(sock, from, "❌ Todos os campos são obrigatórios. Use o comando sem argumentos para ver as instruções.");
+                    break;
+                }
+
+                if (!instagram.startsWith('@')) {
+                    await reply(sock, from, "❌ O Instagram deve começar com @ (ex: @usuario)");
+                    break;
+                }
+
+                if (!/^\d{10,15}$/.test(numero)) {
+                    await reply(sock, from, "❌ O telefone deve ter entre 10 e 15 dígitos (ex: 5527999999999)");
+                    break;
+                }
+
+                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                    await reply(sock, from, "❌ Email inválido. Use o formato correto (ex: usuario@provedor.com)");
+                    break;
+                }
+
+                // Reagir à mensagem indicando processamento
+                await reagirMensagem(sock, message, "⏳");
+
+                // Preparar URL da API
+                const apiUrl = "https://script.google.com/macros/s/AKfycbz7OnN6kyMY5tXuEgcx-M_G_Ox1fUERV6M6GwXc2fuaeE-2MZHwvLeTFuk6QoioP4aPzg/exec";
+                const params = new URLSearchParams({
+                    action: 'create',
+                    nome: nome,
+                    idade: idade,
+                    numero: numero,
+                    instagram: instagram,
+                    email: email
+                });
+
+                // Fazer requisição para a API
+                const response = await axios.get(`${apiUrl}?${params.toString()}`, {
+                    timeout: 30000,
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    }
+                });
+
+                const result = response.data;
+
+                if (result.status === 'success' && result.id) {
+                    // Sucesso - reagir com ✅ e enviar mensagem
+                    await reagirMensagem(sock, message, "✅");
+                    
+                    const successMessage = `🎉 *ID CRIADO COM SUCESSO!*
+
+🆔 **Seu ID:** \`${result.id}\`
+✅ **Status:** Criado com sucesso no painel da NEEXT
+
+📋 **Dados registrados:**
+👤 **Nome:** ${nome}
+🎂 **Idade:** ${idade}
+📱 **Telefone:** ${numero}
+📸 **Instagram:** ${instagram}
+📧 **Email:** ${email}
+
+⚡ **Sistema NEEXT LTDA**
+Seu ID foi salvo com segurança em nosso sistema!`;
+
+                    await sock.sendMessage(from, {
+                        text: successMessage,
+                        contextInfo: {
+                            forwardingScore: 100000,
+                            isForwarded: true,
+                            forwardedNewsletterMessageInfo: {
+                                newsletterJid: "120363289739581116@newsletter",
+                                newsletterName: "🐦‍🔥⃝ 𝆅࿙⵿ׂ𝆆𝝢𝝣𝝣𝝬𝗧𓋌𝗟𝗧𝗗𝗔⦙⦙ꜣྀ"
+                            },
+                            externalAdReply: {
+                                title: "© NEEXT LTDA - ID Criado",
+                                body: `ID: ${result.id} | Sistema NEEXT`,
+                                thumbnailUrl: "https://i.ibb.co/nqgG6z6w/IMG-20250720-WA0041-2.jpg",
+                                mediaType: 1,
+                                sourceUrl: "https://www.neext.online",
+                                showAdAttribution: true
+                            }
+                        }
+                    }, { quoted: selinho });
+
+                } else {
+                    // Erro na API
+                    await reagirMensagem(sock, message, "❌");
+                    await reply(sock, from, "❌ Erro ao criar ID no sistema. Tente novamente em alguns minutos.");
+                }
+
+            } catch (error) {
+                console.error("❌ Erro no comando hermitwhite:", error);
+                await reagirMensagem(sock, message, "❌");
+                
+                if (error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT') {
+                    await reply(sock, from, "❌ Erro de conexão com o servidor NEEXT. Verifique sua internet e tente novamente.");
+                } else if (error.response?.status === 429) {
+                    await reply(sock, from, "❌ Muitas tentativas. Aguarde alguns minutos e tente novamente.");
+                } else {
+                    await reply(sock, from, "❌ Erro interno ao processar criação de ID. Tente novamente.");
+                }
+            }
+        }
+        break;
+
         default:
             await sock.sendMessage(from, { text: `❌ Comando "${command}" não encontrado.\n\nDigite "prefixo" para ver meu prefixo ou "${prefix}ping" para testar.` }, { quoted: message });
             break;

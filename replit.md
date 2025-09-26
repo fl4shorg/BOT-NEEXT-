@@ -12,7 +12,32 @@ Bot WhatsApp automatizado construído com Baileys, com sistema de antilink avan�
 - **`.marca`** - Menciona todos os membros do grupo (apenas em grupos)
 - **`.recado`** - Confirma que bot está ativo
 - **`.s`** - Converte imagem/vídeo para sticker
+- **`.hermitwhite`** - Cria ID no sistema NEEXT (requer dados pessoais)
 - **`prefixo`** - Mostra o prefixo do bot (sem prefixo)
+
+### 🆔 Sistema de Criação de ID - NEEXT
+Comando para criar IDs únicos no sistema da NEEXT LTDA:
+
+#### Como Usar:
+- **`.hermitwhite [nome] [idade] [telefone] [instagram] [email]`** - Cria um novo ID
+
+#### Exemplo:
+```
+.hermitwhite João Silva 25 5527999999999 @joao_silva joao@gmail.com
+```
+
+#### Validações:
+- ✅ Todos os campos são obrigatórios
+- ✅ Instagram deve incluir o @ (ex: @usuario)
+- ✅ Telefone deve ter 10-15 dígitos (ex: 5527999999999)
+- ✅ Email deve ser válido (ex: usuario@provedor.com)
+
+#### Recursos:
+- ✅ Integração com API Google Sheets
+- ✅ Geração automática de ID sequencial
+- ✅ Validação completa de dados
+- ✅ Mensagem de confirmação com ID gerado
+- ✅ Tratamento de erros robusto
 
 ### 🎮 Jogo Akinator
 Sistema de jogo interativo do Akinator (gênio da lâmpada):
