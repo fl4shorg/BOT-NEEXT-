@@ -97,11 +97,57 @@ function formatJid(jid) {
 }
 
 // ---------------------------
+// Função para saudação baseada no horário
+// ---------------------------
+function obterSaudacao() {
+    const hora = new Date().getHours();
+    
+    if (hora >= 6 && hora < 12) {
+        return "🌅 Bom dia";
+    } else if (hora >= 12 && hora < 18) {
+        return "☀️ Boa tarde";
+    } else if (hora >= 18 && hora < 24) {
+        return "🌙 Boa noite";
+    } else {
+        return "🌃 Boa madrugada";
+    }
+}
+
+// ---------------------------
+// Função para contar grupos
+// ---------------------------
+async function contarGrupos(sock) {
+    try {
+        const grupos = await sock.groupFetchAllParticipating();
+        return Object.keys(grupos).length;
+    } catch (error) {
+        console.error('Erro ao contar grupos:', error);
+        return 0;
+    }
+}
+
+// ---------------------------
+// Função para contar comandos
+// ---------------------------
+function contarComandos() {
+    // Baseado na análise do código, temos 18 comandos implementados
+    const comandos = [
+        'ping', 'hora', 'dono', 'marca', 'recado', 's', 'hermitwhite', 'prefixo',
+        'antilink', 'brat', 'pinterest', 'rename', 'akinator', 'resetaki', 'instagram',
+        'ig', 'menu' // incluindo o novo comando menu
+    ];
+    return comandos.length;
+}
+
+// ---------------------------
 // Exportações
 // ---------------------------
 module.exports = {
     mostrarBanner,
     logMensagem,
     formatJid,
-    getBuffer
+    getBuffer,
+    obterSaudacao,
+    contarGrupos,
+    contarComandos
 };
