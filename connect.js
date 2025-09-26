@@ -145,6 +145,11 @@ async function startBot() {
             mostrarBanner();
             console.log(`✅ Conectado ao sistema da Neext em ${new Date().toLocaleString()}`);
             await enviarContatoSelinho(sock);
+            
+            // Configura listeners de mensagens após conectar
+            const { setupListeners } = require("./index.js");
+            setupListeners(sock);
+            console.log("🔧 Listeners de mensagens configurados!");
         } else if(connection==="close"){
             const statusCode = lastDisconnect?.error?.output?.statusCode;
             const shouldReconnect = statusCode !== 401 && statusCode !== 403;
@@ -152,12 +157,6 @@ async function startBot() {
             if(shouldReconnect) setTimeout(()=>startBot(),5000);
         }
     });
-
-    // O processamento de mensagens será feito apenas pelo index.js via setupListeners
-
-    // inicializa listeners e comandos (index.js exporta setupListeners)
-    const { setupListeners } = require("./index.js");
-    setupListeners(sock);
 }
 
 startBot();
