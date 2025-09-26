@@ -6,7 +6,9 @@ const cfonts = require("cfonts");
 // ---------------------------
 // Configurações do Bot
 // ---------------------------
-const { prefix, botNome } = require("../../export.js"); // ainda importa, mas não mostra
+const settings = require("../../settings/settings.json");
+const prefix = settings.prefix || ".";
+const botNome = settings.nomeDoBot || "NEEXT BOT";
 
 // ---------------------------
 // Banner do bot
