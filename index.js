@@ -448,8 +448,8 @@ async function handleCommand(sock, message, command, args, from, quoted) {
             break;
             
             case 'dono':
-    // garante que 'm' está definido no escopo da função que chama o switch
-    const sender = m?.key?.participant || from;
+    // garante que 'sender' está definido no escopo correto
+    const sender = message.key.participant || from;
     await reply(sock, from, "🛡️ Esse é o dono do bot!", [sender]);
     break;
     
@@ -1026,7 +1026,7 @@ async function handleCommand(sock, message, command, args, from, quoted) {
         break;
 
         default:
-            await sock.sendMessage(from, { text: `❌ Comando "${command}" não encontrado.\n\nDigite /oi para ajuda.` }, { quoted: message });
+            await sock.sendMessage(from, { text: `❌ Comando "${command}" não encontrado.\n\nDigite "prefixo" para ver meu prefixo ou "${prefix}ping" para testar.` }, { quoted: message });
             break;
     }
 }

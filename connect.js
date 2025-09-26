@@ -13,7 +13,7 @@ const {
 const { readline, fs, join, logger, Jimp, mostrarBanner, logMensagem } = require("./export");
 const settings = require("./settings/settings.json");
 
-const prefixo = settings.prefixo; // pega exatamente o que está no JSON
+const prefix = settings.prefix; // pega exatamente o que está no JSON
 
 async function perguntarMetodoConexao() {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -153,29 +153,7 @@ async function startBot() {
         }
     });
 
-    // listener leve apenas para logs básicos (index.js fará o processamento de comandos)
-    sock.ev.on("messages.upsert", async (msgUpdate)=>{
-        const messages = msgUpdate.messages;
-        if(!messages) return;
-        for(const m of messages){
-            try {
-                const texto = extractTextFromMessage(m.message).trim();
-                // usa o logger central (isCommand = false aqui — index.js fará a identificação real)
-                logMensagem(m, texto || "", false);
-                const type = getContentType(m.message);
-                if(type==="imageMessage"){
-                    await downloadContentFromMessage(m.message.imageMessage,'image');
-                    console.log("🖼️ Imagem recebida e baixada com sucesso");
-                }
-                if(type==="pollCreationMessage"){
-                    const votes = getAggregateVotesInPollMessage(m.message.pollCreationMessage);
-                    console.log("📊 Votos da enquete:",votes);
-                }
-            } catch (err) {
-                console.error("Erro no upsert (connect):", err);
-            }
-        }
-    });
+    // O processamento de mensagens será feito apenas pelo index.js via setupListeners
 
     // inicializa listeners e comandos (index.js exporta setupListeners)
     const { setupListeners } = require("./index.js");
