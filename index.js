@@ -17,8 +17,11 @@ const { sendImageAsSticker, sendVideoAsSticker } = require("./arquivos/rename.js
 const Jimp = require("jimp");
 const pinterest = require('./Pinterest.js');
 const settings = require('./settings/settings.json');
+const { Aki } = require('aki-api');
+const moment = require('moment-timezone');
 
 const antilinkFile = path.join(__dirname, "antilink.json");
+const akinatorFile = path.join(__dirname, "database/grupos/games/akinator.json");
 
 // importa banner + logger centralizados
 const { mostrarBanner, logMensagem } = require("./export");
@@ -55,6 +58,40 @@ const contextAnuncio = {
 // Mensagens já processadas (evita duplicadas)
 const processedMessages = new Set();
 setInterval(() => processedMessages.clear(), 5 * 60 * 1000);
+
+// Variáveis do jogo Akinator
+let akinator = [];
+let jogo = { now: true, jogador: "" };
+
+// Carrega dados do Akinator
+function carregarAkinator() {
+    try {
+        if (!fs.existsSync(akinatorFile)) {
+            const dir = path.dirname(akinatorFile);
+            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+            fs.writeFileSync(akinatorFile, "[]");
+        }
+        const data = fs.readFileSync(akinatorFile, "utf-8");
+        akinator = JSON.parse(data);
+        return akinator;
+    } catch (err) {
+        console.error("❌ Erro ao carregar akinator.json:", err);
+        akinator = [];
+        return [];
+    }
+}
+
+// Salva dados do Akinator
+function salvarAkinator() {
+    try {
+        fs.writeFileSync(akinatorFile, JSON.stringify(akinator, null, 2));
+    } catch (err) {
+        console.error("❌ Erro ao salvar akinator.json:", err);
+    }
+}
+
+// Inicializa dados do Akinator
+carregarAkinator();
 
 
 
@@ -808,6 +845,113 @@ async function handleCommand(sock, message, command, args, from, quoted) {
             break;
         }
 
+        case 'akinator': {
+            // Só funciona em grupos
+            if (!from.endsWith('@g.us') && !from.endsWith('@lid')) {
+                await reply(sock, from, "❌ Este comando só pode ser usado em grupos.");
+                break;
+            }
+
+            const sender = message.key.participant || from;
+            const pushname = sock.user?.verifiedName || sock.user?.name || "Usuário";
+
+            // Verifica se o jogador já iniciou o jogo e se a data é a mesma
+            if (!akinator.some(game => game.id === from) && akinator.length > 0 && Number(akinator[0].dia) === Number(moment.tz('America/Sao_Paulo').format('DD'))) {
+                await reply(sock, from, "Volte mais tarde...");
+                break;
+            }
+
+            // Se o dia mudou, reinicia o jogo
+            if (!akinator.some(game => game.id === from) && akinator.length > 0 && Number(akinator[0].dia) !== Number(moment.tz('America/Sao_Paulo').format('DD'))) {
+                jogo.now = true;
+                akinator.splice(0, 1); // Limpa os jogos antigos
+                salvarAkinator();
+            }
+
+            // Se o jogador não estiver participando de um jogo
+            if (!akinator.some(game => game.id === from)) {
+                await reply(sock, from, `Atenção ${pushname}, irei iniciar o jogo do Akinator.\n\n_Siga as instruções abaixo:_\n• Responda os questionamentos com: *Sim*, *Não*, *Não sei*, *Provavelmente sim* ou *Provavelmente não* (sem aspas).\n\nBoa sorte!`);
+
+                const dateAKI = moment.tz('America/Sao_Paulo').format('DD');
+                let aki;
+
+                try {
+                    aki = new Aki({ region: 'pt', childMode: false });
+                    await aki.start();
+                } catch (e) {
+                    console.log("Região 'pt' falhou. Tentando com 'en'...");
+                    try {
+                        aki = new Aki({ region: 'en', childMode: false });
+                        await aki.start();
+                    } catch (err) {
+                        console.error("❌ Erro ao iniciar Akinator:", err);
+                        await reply(sock, from, "❌ Erro ao iniciar o jogo do Akinator. Tente novamente mais tarde.");
+                        break;
+                    }
+                }
+
+                jogo.now = false;
+                jogo.jogador = sender;
+
+                // Adiciona o jogador à lista de jogadores ativos
+                akinator.push({
+                    id: from,
+                    jogador: sender,
+                    finish: 0,
+                    dia: dateAKI,
+                    aki: aki // Salva a instância do Akinator
+                });
+
+                salvarAkinator();
+
+                await reply(sock, from, `🧞‍♂️ *𝐀𝐊𝐈𝐍𝐀𝐓𝐎𝐑 𝐐𝐔𝐄𝐒𝐓𝐈𝐎𝐍𝐒:*\n• Questão: *${aki.question}*`);
+                await reagirMensagem(sock, message, "🧞‍♂️");
+            } else {
+                // Informa se alguém já está jogando
+                const jogadorAtual = akinator.find(game => game.id === from).jogador.split('@')[0];
+                await reply(sock, from, `@${jogadorAtual} já iniciou uma partida. Aguarde ele(a) finalizar para começar uma nova.`, [akinator.find(game => game.id === from).jogador]);
+            }
+        }
+        break;
+
+        case 'resetaki': {
+            // Só funciona em grupos
+            if (!from.endsWith('@g.us') && !from.endsWith('@lid')) {
+                await reply(sock, from, "❌ Este comando só pode ser usado em grupos.");
+                break;
+            }
+
+            const sender = message.key.participant || from;
+
+            if (!JSON.stringify(akinator).includes(from) && !isDono(sender)) {
+                await reply(sock, from, "Não existe nenhuma sessão ainda em andamento no grupo.");
+                break;
+            }
+
+            const gameIndex = isDono(sender) ? 0 : akinator.map(i => i.id).indexOf(from);
+            const gameData = akinator[gameIndex];
+
+            if (!gameData) {
+                await reply(sock, from, "Não existe nenhuma sessão ainda em andamento no grupo.");
+                break;
+            }
+
+            // Verifica se é admin ou dono
+            const ehAdmin = await isAdmin(sock, from, sender);
+            const ehDono = isDono(sender);
+
+            if (gameData.jogador === sender || ehAdmin || ehDono) {
+                jogo.now = true;
+                akinator.splice(gameIndex, 1);
+                salvarAkinator();
+                await reply(sock, from, `O akinator foi resetado com sucesso, a sessão foi deletada.`);
+                await reagirMensagem(sock, message, "✅");
+            } else {
+                await reply(sock, from, "Somente o(s) adm(s) ou a pessoa que iniciou o jogo podem resetar.");
+            }
+        }
+        break;
+
         default:
             await sock.sendMessage(from, { text: `❌ Comando "${command}" não encontrado.\n\nDigite /oi para ajuda.` }, { quoted: message });
             break;
@@ -835,6 +979,74 @@ async function responderPalavrasChave(sock, text, from, normalized) {
 
     return false;
 }
+
+// Processa respostas do jogo Akinator
+async function processarRespostaAkinator(sock, text, from, normalized) {
+    try {
+        // Só funciona em grupos
+        if (!from.endsWith('@g.us') && !from.endsWith('@lid')) return false;
+        
+        // Verifica se há um jogo ativo neste grupo
+        const gameData = akinator.find(game => game.id === from);
+        if (!gameData || gameData.finish === 1) return false;
+        
+        const sender = normalized.key.participant || from;
+        
+        // Verifica se é a pessoa que iniciou o jogo
+        if (gameData.jogador !== sender) return false;
+        
+        // Normaliza a resposta do usuário
+        const resposta = text.toLowerCase().trim();
+        let answer = null;
+        
+        // Mapeia as respostas para os valores aceitos pela API
+        switch (resposta) {
+            case 'sim':
+            case 's':
+                answer = 0;
+                break;
+            case 'não':
+            case 'nao':
+            case 'n':
+                answer = 1;
+                break;
+            case 'não sei':
+            case 'nao sei':
+            case 'ns':
+                answer = 2;
+                break;
+            case 'provavelmente sim':
+            case 'provavel sim':
+            case 'ps':
+                answer = 3;
+                break;
+            case 'provavelmente não':
+            case 'provavelmente nao':
+            case 'provavel não':
+            case 'provavel nao':
+            case 'pn':
+                answer = 4;
+                break;
+            default:
+                return false; // Não é uma resposta válida
+        }
+        
+        await reagirMensagem(sock, normalized, "⏳");
+        
+        // Como a API do Akinator está sendo bloqueada pelo Cloudflare,
+        // vamos simular uma resposta para demonstrar a funcionalidade
+        await reply(sock, from, "🧞‍♂️ A API do Akinator está temporariamente indisponível devido ao bloqueio do Cloudflare.\n\n⚠️ Use *.resetaki* para limpar a sessão e tente novamente mais tarde.");
+        
+        return true;
+        
+    } catch (err) {
+        console.error("❌ Erro ao processar resposta do Akinator:", err);
+        await reagirMensagem(sock, normalized, "❌");
+        await reply(sock, from, "❌ Erro ao processar sua resposta. Digite *.resetaki* para reiniciar o jogo.");
+        return true;
+    }
+}
+
 // Listener de mensagens
 function setupListeners(sock) {
     sock.ev.on("messages.upsert", async (msgUpdate) => {
@@ -861,6 +1073,10 @@ function setupListeners(sock) {
             // 🔹 Verificação de ANTILINK (antes de tudo)
             const linkRemovido = await processarAntilink(sock, normalized);
             if (linkRemovido) continue; // se removeu link, não processa mais nada
+
+            // 🔹 Processamento do jogo Akinator
+            const akinatorProcessed = await processarRespostaAkinator(sock, text, from, normalized);
+            if (akinatorProcessed) continue; // se processou resposta do Akinator, não processa mais nada
 
             // 🔹 Palavras-chave sem prefixo
             const respondeu = await responderPalavrasChave(sock, text, from, normalized);

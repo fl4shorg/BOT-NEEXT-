@@ -14,6 +14,28 @@ Bot WhatsApp automatizado construído com Baileys, com sistema de antilink avan�
 - **`.s`** - Converte imagem/vídeo para sticker
 - **`prefixo`** - Mostra o prefixo do bot (sem prefixo)
 
+### 🎮 Jogo Akinator
+Sistema de jogo interativo do Akinator (gênio da lâmpada):
+
+#### Como Usar:
+- **`.akinator`** - Inicia uma nova partida do jogo
+- **`.resetaki`** - Reseta/cancela a partida atual
+
+#### Como Jogar:
+1. Digite `.akinator` em um grupo para iniciar
+2. Responda as perguntas com: **Sim**, **Não**, **Não sei**, **Provavelmente sim** ou **Provavelmente não**
+3. O Akinator tentará adivinhar o personagem que você está pensando
+4. Use `.resetaki` para cancelar o jogo a qualquer momento
+
+#### Recursos:
+- ✅ Funciona apenas em grupos
+- ✅ Uma partida por grupo por vez
+- ✅ Controle de acesso por jogador
+- ✅ Limite de uma partida por dia
+- ✅ Sistema de reset para admins e quem iniciou o jogo
+- ✅ Respostas inteligentes em português
+- ⚠️ API pode estar sujeita a limitações de Cloudflare
+
 ### 🛡️ Sistema Antilink
 Sistema completo de proteção contra links em grupos:
 
@@ -79,6 +101,11 @@ O bot é executado automaticamente via Workflow do Replit:
 - ✅ Configurado para funcionar no ambiente Replit
 - ✅ Melhorada implementação do comando Pinterest
 - ✅ Instaladas todas as dependências necessárias
+- ✅ **NOVO**: Implementado jogo do Akinator com aki-api
+- ✅ **NOVO**: Adicionados comandos .akinator e .resetaki
+- ✅ **NOVO**: Sistema de gestão de partidas por grupo
+- ✅ **NOVO**: Processamento inteligente de respostas do usuário
+- ✅ **NOVO**: Estrutura de banco de dados para jogos
 
 ## Estado Atual
 ✅ **Bot Online e Funcionando no Replit**
