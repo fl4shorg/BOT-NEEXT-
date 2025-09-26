@@ -1,10 +1,9 @@
-const fetch = require('node-fetch');
+const axios = require('axios');
 
 async function igdl(query) {
   try {
-    const response = await fetch(`https://api.siputzx.my.id/api/d/igdl?url=${query}`);
-    const data = await response.json();
-    return data;
+    const response = await axios.get(`https://api.siputzx.my.id/api/d/igdl?url=${query}`);
+    return response.data;
   } catch (error) {
     console.error(error);
     throw error;
