@@ -29,6 +29,9 @@ const akinatorFile = path.join(__dirname, "database/grupos/games/akinator.json")
 // importa banner + logger centralizados
 const { mostrarBanner, logMensagem } = require("./export");
 
+// importa funções auxiliares do menu
+const { obterSaudacao, contarGrupos, contarComandos } = require("./arquivos/funcoes/function.js");
+
 // Config do Bot
 const { prefix, nomeDoBot, nickDoDono, idDoCanal, fotoDoBot } = settings;
 
@@ -1270,6 +1273,81 @@ Seu ID foi salvo com segurança em nosso sistema!`;
                 } else {
                     await reply(sock, from, "❌ Erro interno ao processar criação de ID. Tente novamente.");
                 }
+            }
+        }
+        break;
+
+        case "menu": {
+            try {
+                // Obter saudação baseada no horário
+                const saudacao = obterSaudacao();
+                
+                // Obter informações do bot
+                const totalComandos = contarComandos();
+                const totalGrupos = await contarGrupos(sock);
+                
+                // Buscar versão do Baileys do package.json
+                const packageJson = require('./package.json');
+                const versaoBaileys = packageJson.dependencies['@whiskeysockets/baileys'];
+                
+                // Reagir à mensagem
+                await reagirMensagem(sock, message, "📋");
+
+                // Montar o menu
+                const menuText = `${saudacao}! 👋
+
+╭──〔 𖦹∘̥⃟⸽⃟ INFORMAÇÕES 〕──⪩
+│ 𖦹∘̥⸽🎯⃟ Prefixo: 「 ${prefix} 」
+│ 𖦹∘̥⸽📊⃟ Total de Comandos: ${totalComandos}
+│ 𖦹∘̥⸽🤖⃟ Nome do Bot: ${nomeDoBot}
+│ 𖦹∘̥⸽👤⃟ Usuário: ${senderName || "Usuário"}
+│ 𖦹∘̥⸽🛠️⃟ Versão: ${versaoBaileys}
+│ 𖦹∘̥⸽👑⃟ Dono: ${nickDoDono}
+│ 𖦹∘̥⸽📈⃟ Total de Grupos: ${totalGrupos}
+│ 𖦹∘̥⸽📝⃟ Total Registrado: Em breve
+│ 𖦹∘̥⸽🎗️⃟ Cargo: Em breve
+╰───────────────────⪨
+
+╭──〔 MENUS DISPONÍVEIS 〕──⪩
+│ 𖧈∘̥⸽🎬⃟ menudownload
+│ 𖧈∘̥⸽🖼️⃟ menufigurinhas
+│ 𖧈∘̥⸽🔞⃟ menuhentai
+│ 𖧈∘̥⸽🛠️⃟ menuadm
+│ 𖧈∘̥⸽👑⃟ menudono
+│ 𖧈∘̥⸽🎉⃟ menubrincadeira
+│ 𖧈∘̥⸽🧑‍🤝‍🧑⃟ menuMembro
+│ 𖧈∘̥⸽🎮⃟ menuGamer
+│ 𖧈∘̥⸽🌐⃟ menuNeext
+╰──────────────────────⪨
+
+© NEEXT LTDA`;
+
+                // Enviar menu com imagem
+                await sock.sendMessage(from, {
+                    image: { url: path.join(__dirname, "attached_assets/stock_images/futuristic_technolog_88fddab7.jpg") },
+                    caption: menuText,
+                    contextInfo: {
+                        forwardingScore: 100000,
+                        isForwarded: true,
+                        forwardedNewsletterMessageInfo: {
+                            newsletterJid: "120363289739581116@newsletter",
+                            newsletterName: "🐦‍🔥⃝ 𝆅࿙⵿ׂ𝆆𝝢𝝣𝝣𝝬𝗧𓋌𝗟𝗧𝗗𝗔⦙⦙ꜣྀ"
+                        },
+                        externalAdReply: {
+                            title: `${saudacao} - Menu Principal`,
+                            body: `${nomeDoBot} | ${totalComandos} comandos disponíveis`,
+                            thumbnailUrl: "https://i.ibb.co/nqgG6z6w/IMG-20250720-WA0041-2.jpg",
+                            mediaType: 1,
+                            sourceUrl: "https://www.neext.online",
+                            showAdAttribution: true
+                        }
+                    }
+                }, { quoted: selinho });
+
+            } catch (error) {
+                console.error("❌ Erro no comando menu:", error);
+                await reagirMensagem(sock, message, "❌");
+                await reply(sock, from, "❌ Erro ao carregar o menu. Tente novamente.");
             }
         }
         break;
